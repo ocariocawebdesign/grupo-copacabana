@@ -2,314 +2,6 @@ exports.id = "component---cache-dev-404-page-js";
 exports.ids = ["component---cache-dev-404-page-js"];
 exports.modules = {
 
-/***/ "./node_modules/@gatsbyjs/reach-router/lib/utils.js":
-/*!**********************************************************!*\
-  !*** ./node_modules/@gatsbyjs/reach-router/lib/utils.js ***!
-  \**********************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-
-exports.__esModule = true;
-exports.shallowCompare = exports.validateRedirect = exports.insertParams = exports.resolve = exports.match = exports.pick = exports.startsWith = undefined;
-
-var _invariant = __webpack_require__(/*! invariant */ "./node_modules/invariant/invariant.js");
-
-var _invariant2 = _interopRequireDefault(_invariant);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-////////////////////////////////////////////////////////////////////////////////
-// startsWith(string, search) - Check if `string` starts with `search`
-var startsWith = function startsWith(string, search) {
-  return string.substr(0, search.length) === search;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// pick(routes, uri)
-//
-// Ranks and picks the best route to match. Each segment gets the highest
-// amount of points, then the type of segment gets an additional amount of
-// points where
-//
-//     static > dynamic > splat > root
-//
-// This way we don't have to worry about the order of our routes, let the
-// computers do it.
-//
-// A route looks like this
-//
-//     { path, default, value }
-//
-// And a returned match looks like:
-//
-//     { route, params, uri }
-//
-// I know, I should use TypeScript not comments for these types.
-var pick = function pick(routes, uri) {
-  var match = void 0;
-  var default_ = void 0;
-
-  var _uri$split = uri.split("?"),
-      uriPathname = _uri$split[0];
-
-  var uriSegments = segmentize(uriPathname);
-  var isRootUri = uriSegments[0] === "";
-  var ranked = rankRoutes(routes);
-
-  for (var i = 0, l = ranked.length; i < l; i++) {
-    var missed = false;
-    var route = ranked[i].route;
-
-    if (route.default) {
-      default_ = {
-        route: route,
-        params: {},
-        uri: uri
-      };
-      continue;
-    }
-
-    var routeSegments = segmentize(route.path);
-    var params = {};
-    var max = Math.max(uriSegments.length, routeSegments.length);
-    var index = 0;
-
-    for (; index < max; index++) {
-      var routeSegment = routeSegments[index];
-      var uriSegment = uriSegments[index];
-
-      if (isSplat(routeSegment)) {
-        // Hit a splat, just grab the rest, and return a match
-        // uri:   /files/documents/work
-        // route: /files/*
-        var param = routeSegment.slice(1) || "*";
-        params[param] = uriSegments.slice(index).map(decodeURIComponent).join("/");
-        break;
-      }
-
-      if (uriSegment === undefined) {
-        // URI is shorter than the route, no match
-        // uri:   /users
-        // route: /users/:userId
-        missed = true;
-        break;
-      }
-
-      var dynamicMatch = paramRe.exec(routeSegment);
-
-      if (dynamicMatch && !isRootUri) {
-        var matchIsNotReserved = reservedNames.indexOf(dynamicMatch[1]) === -1;
-        !matchIsNotReserved ?  true ? (0, _invariant2.default)(false, "<Router> dynamic segment \"" + dynamicMatch[1] + "\" is a reserved name. Please use a different name in path \"" + route.path + "\".") : 0 : void 0;
-        var value = decodeURIComponent(uriSegment);
-        params[dynamicMatch[1]] = value;
-      } else if (routeSegment !== uriSegment) {
-        // Current segments don't match, not dynamic, not splat, so no match
-        // uri:   /users/123/settings
-        // route: /users/:id/profile
-        missed = true;
-        break;
-      }
-    }
-
-    if (!missed) {
-      match = {
-        route: route,
-        params: params,
-        uri: "/" + uriSegments.slice(0, index).join("/")
-      };
-      break;
-    }
-  }
-
-  return match || default_ || null;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// match(path, uri) - Matches just one path to a uri, also lol
-var match = function match(path, uri) {
-  return pick([{ path: path }], uri);
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// resolve(to, basepath)
-//
-// Resolves URIs as though every path is a directory, no files.  Relative URIs
-// in the browser can feel awkward because not only can you be "in a directory"
-// you can be "at a file", too. For example
-//
-//     browserSpecResolve('foo', '/bar/') => /bar/foo
-//     browserSpecResolve('foo', '/bar') => /foo
-//
-// But on the command line of a file system, it's not as complicated, you can't
-// `cd` from a file, only directories.  This way, links have to know less about
-// their current path. To go deeper you can do this:
-//
-//     <Link to="deeper"/>
-//     // instead of
-//     <Link to=`{${props.uri}/deeper}`/>
-//
-// Just like `cd`, if you want to go deeper from the command line, you do this:
-//
-//     cd deeper
-//     # not
-//     cd $(pwd)/deeper
-//
-// By treating every path as a directory, linking to relative paths should
-// require less contextual information and (fingers crossed) be more intuitive.
-var resolve = function resolve(to, base) {
-  // /foo/bar, /baz/qux => /foo/bar
-  if (startsWith(to, "/")) {
-    return to;
-  }
-
-  var _to$split = to.split("?"),
-      toPathname = _to$split[0],
-      toQuery = _to$split[1];
-
-  var _base$split = base.split("?"),
-      basePathname = _base$split[0];
-
-  var toSegments = segmentize(toPathname);
-  var baseSegments = segmentize(basePathname);
-
-  // ?a=b, /users?b=c => /users?a=b
-  if (toSegments[0] === "") {
-    return addQuery(basePathname, toQuery);
-  }
-
-  // profile, /users/789 => /users/789/profile
-  if (!startsWith(toSegments[0], ".")) {
-    var pathname = baseSegments.concat(toSegments).join("/");
-    return addQuery((basePathname === "/" ? "" : "/") + pathname, toQuery);
-  }
-
-  // ./         /users/123  =>  /users/123
-  // ../        /users/123  =>  /users
-  // ../..      /users/123  =>  /
-  // ../../one  /a/b/c/d    =>  /a/b/one
-  // .././one   /a/b/c/d    =>  /a/b/c/one
-  var allSegments = baseSegments.concat(toSegments);
-  var segments = [];
-  for (var i = 0, l = allSegments.length; i < l; i++) {
-    var segment = allSegments[i];
-    if (segment === "..") segments.pop();else if (segment !== ".") segments.push(segment);
-  }
-
-  return addQuery("/" + segments.join("/"), toQuery);
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// insertParams(path, params)
-
-var insertParams = function insertParams(path, params) {
-  var _path$split = path.split("?"),
-      pathBase = _path$split[0],
-      _path$split$ = _path$split[1],
-      query = _path$split$ === undefined ? "" : _path$split$;
-
-  var segments = segmentize(pathBase);
-  var constructedPath = "/" + segments.map(function (segment) {
-    var match = paramRe.exec(segment);
-    return match ? params[match[1]] : segment;
-  }).join("/");
-  var _params$location = params.location;
-  _params$location = _params$location === undefined ? {} : _params$location;
-  var _params$location$sear = _params$location.search,
-      search = _params$location$sear === undefined ? "" : _params$location$sear;
-
-  var searchSplit = search.split("?")[1] || "";
-  constructedPath = addQuery(constructedPath, query, searchSplit);
-  return constructedPath;
-};
-
-var validateRedirect = function validateRedirect(from, to) {
-  var filter = function filter(segment) {
-    return isDynamic(segment);
-  };
-  var fromString = segmentize(from).filter(filter).sort().join("/");
-  var toString = segmentize(to).filter(filter).sort().join("/");
-  return fromString === toString;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Junk
-var paramRe = /^:(.+)/;
-
-var SEGMENT_POINTS = 4;
-var STATIC_POINTS = 3;
-var DYNAMIC_POINTS = 2;
-var SPLAT_PENALTY = 1;
-var ROOT_POINTS = 1;
-
-var isRootSegment = function isRootSegment(segment) {
-  return segment === "";
-};
-var isDynamic = function isDynamic(segment) {
-  return paramRe.test(segment);
-};
-var isSplat = function isSplat(segment) {
-  return segment && segment[0] === "*";
-};
-
-var rankRoute = function rankRoute(route, index) {
-  var score = route.default ? 0 : segmentize(route.path).reduce(function (score, segment) {
-    score += SEGMENT_POINTS;
-    if (isRootSegment(segment)) score += ROOT_POINTS;else if (isDynamic(segment)) score += DYNAMIC_POINTS;else if (isSplat(segment)) score -= SEGMENT_POINTS + SPLAT_PENALTY;else score += STATIC_POINTS;
-    return score;
-  }, 0);
-  return { route: route, score: score, index: index };
-};
-
-var rankRoutes = function rankRoutes(routes) {
-  return routes.map(rankRoute).sort(function (a, b) {
-    return a.score < b.score ? 1 : a.score > b.score ? -1 : a.index - b.index;
-  });
-};
-
-var segmentize = function segmentize(uri) {
-  return uri
-  // strip starting/ending slashes
-  .replace(/(^\/+|\/+$)/g, "").split("/");
-};
-
-var addQuery = function addQuery(pathname) {
-  for (var _len = arguments.length, query = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-    query[_key - 1] = arguments[_key];
-  }
-
-  query = query.filter(function (q) {
-    return q && q.length > 0;
-  });
-  return pathname + (query && query.length > 0 ? "?" + query.join("&") : "");
-};
-
-var reservedNames = ["uri", "path"];
-
-/**
- * Shallow compares two objects.
- * @param {Object} obj1 The first object to compare.
- * @param {Object} obj2 The second object to compare.
- */
-var shallowCompare = function shallowCompare(obj1, obj2) {
-  var obj1Keys = Object.keys(obj1);
-  return obj1Keys.length === Object.keys(obj2).length && obj1Keys.every(function (key) {
-    return obj2.hasOwnProperty(key) && obj1[key] === obj2[key];
-  });
-};
-
-////////////////////////////////////////////////////////////////////////////////
-exports.startsWith = startsWith;
-exports.pick = pick;
-exports.match = match;
-exports.resolve = resolve;
-exports.insertParams = insertParams;
-exports.validateRedirect = validateRedirect;
-exports.shallowCompare = shallowCompare;
-
-/***/ }),
-
 /***/ "./node_modules/decode-uri-component/index.js":
 /*!****************************************************!*\
   !*** ./node_modules/decode-uri-component/index.js ***!
@@ -455,8 +147,7 @@ module.exports = function (obj, predicate) {
 exports.__esModule = true;
 exports.applyTrailingSlashOption = void 0;
 
-// TODO(v5): Remove legacy setting and default to "always"
-const applyTrailingSlashOption = (input, option = `legacy`) => {
+const applyTrailingSlashOption = (input, option = `always`) => {
   const hasHtmlSuffix = input.endsWith(`.html`);
   const hasXmlSuffix = input.endsWith(`.xml`);
   const hasPdfSuffix = input.endsWith(`.pdf`);
@@ -751,7 +442,7 @@ var _scrollHandler = __webpack_require__(/*! ./scroll-handler */ "./node_modules
 
 var _react = __webpack_require__(/*! react */ "react");
 
-var _reachRouter = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/es/index.js");
+var _reachRouter = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/dist/index.modern.mjs");
 
 function useScrollRestoration(identifier) {
   var location = (0, _reachRouter.useLocation)();
@@ -772,6 +463,43 @@ function useScrollRestoration(identifier) {
     }
   };
 }
+
+/***/ }),
+
+/***/ "./.cache/context-utils.js":
+/*!*********************************!*\
+  !*** ./.cache/context-utils.js ***!
+  \*********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "createServerOrClientContext": () => (/* binding */ createServerOrClientContext)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+
+// Ensure serverContext is not created more than once as React will throw when creating it more than once
+// https://github.com/facebook/react/blob/dd2d6522754f52c70d02c51db25eb7cbd5d1c8eb/packages/react/src/ReactServerContext.js#L101
+const createServerContext = (name, defaultValue = null) => {
+  /* eslint-disable no-undef */
+  if (!globalThis.__SERVER_CONTEXT) {
+    globalThis.__SERVER_CONTEXT = {};
+  }
+  if (!globalThis.__SERVER_CONTEXT[name]) {
+    globalThis.__SERVER_CONTEXT[name] = react__WEBPACK_IMPORTED_MODULE_0___default().createServerContext(name, defaultValue);
+  }
+  return globalThis.__SERVER_CONTEXT[name];
+};
+function createServerOrClientContext(name, defaultValue) {
+  if ((react__WEBPACK_IMPORTED_MODULE_0___default().createServerContext)) {
+    return createServerContext(name, defaultValue);
+  }
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createContext(defaultValue);
+}
+
 
 /***/ }),
 
@@ -986,7 +714,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "grabMatchParams": () => (/* binding */ grabMatchParams),
 /* harmony export */   "setMatchPaths": () => (/* binding */ setMatchPaths)
 /* harmony export */ });
-/* harmony import */ var _gatsbyjs_reach_router_lib_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @gatsbyjs/reach-router/lib/utils */ "./node_modules/@gatsbyjs/reach-router/lib/utils.js");
+/* harmony import */ var _gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/dist/index.modern.mjs");
 /* harmony import */ var _strip_prefix__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./strip-prefix */ "./.cache/strip-prefix.js");
 /* harmony import */ var _normalize_page_path__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./normalize-page-path */ "./.cache/normalize-page-path.js");
 /* harmony import */ var _redirect_utils_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./redirect-utils.js */ "./.cache/redirect-utils.js");
@@ -1049,7 +777,7 @@ const findMatchPath = rawPathname => {
       originalPath: path
     };
   });
-  const path = (0,_gatsbyjs_reach_router_lib_utils__WEBPACK_IMPORTED_MODULE_0__.pick)(pickPaths, trimmedPathname);
+  const path = (0,_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_0__.pick)(pickPaths, trimmedPathname);
   if (path) {
     return (0,_normalize_page_path__WEBPACK_IMPORTED_MODULE_2__["default"])(path.route.originalPath);
   }
@@ -1076,7 +804,7 @@ const grabMatchParams = rawPathname => {
       originalPath: path
     };
   });
-  const path = (0,_gatsbyjs_reach_router_lib_utils__WEBPACK_IMPORTED_MODULE_0__.pick)(pickPaths, trimmedPathname);
+  const path = (0,_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_0__.pick)(pickPaths, trimmedPathname);
   if (path) {
     return path.params;
   }
@@ -1136,20 +864,20 @@ const cleanPath = rawPathname => {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "Link": () => (/* reexport safe */ gatsby_link__WEBPACK_IMPORTED_MODULE_3__["default"]),
+/* harmony export */   "Link": () => (/* reexport safe */ gatsby_link__WEBPACK_IMPORTED_MODULE_3__.Link),
 /* harmony export */   "PageRenderer": () => (/* reexport default from dynamic */ _public_page_renderer__WEBPACK_IMPORTED_MODULE_1___default.a),
-/* harmony export */   "Script": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_5__.Script),
-/* harmony export */   "ScriptStrategy": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_5__.ScriptStrategy),
+/* harmony export */   "Script": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_6__.Script),
+/* harmony export */   "ScriptStrategy": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_6__.ScriptStrategy),
+/* harmony export */   "Slice": () => (/* reexport safe */ _slice__WEBPACK_IMPORTED_MODULE_5__.Slice),
 /* harmony export */   "StaticQuery": () => (/* reexport safe */ _static_query__WEBPACK_IMPORTED_MODULE_4__.StaticQuery),
 /* harmony export */   "StaticQueryContext": () => (/* reexport safe */ _static_query__WEBPACK_IMPORTED_MODULE_4__.StaticQueryContext),
-/* harmony export */   "StaticQueryServerContext": () => (/* reexport safe */ _static_query__WEBPACK_IMPORTED_MODULE_4__.StaticQueryServerContext),
-/* harmony export */   "collectedScriptsByPage": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_5__.collectedScriptsByPage),
+/* harmony export */   "collectedScriptsByPage": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_6__.collectedScriptsByPage),
 /* harmony export */   "graphql": () => (/* binding */ graphql),
 /* harmony export */   "navigate": () => (/* reexport safe */ gatsby_link__WEBPACK_IMPORTED_MODULE_3__.navigate),
 /* harmony export */   "parsePath": () => (/* reexport safe */ gatsby_link__WEBPACK_IMPORTED_MODULE_3__.parsePath),
 /* harmony export */   "prefetchPathname": () => (/* binding */ prefetchPathname),
-/* harmony export */   "scriptCache": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_5__.scriptCache),
-/* harmony export */   "scriptCallbackCache": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_5__.scriptCallbackCache),
+/* harmony export */   "scriptCache": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_6__.scriptCache),
+/* harmony export */   "scriptCallbackCache": () => (/* reexport safe */ gatsby_script__WEBPACK_IMPORTED_MODULE_6__.scriptCallbackCache),
 /* harmony export */   "useScrollRestoration": () => (/* reexport safe */ gatsby_react_router_scroll__WEBPACK_IMPORTED_MODULE_2__.useScrollRestoration),
 /* harmony export */   "useStaticQuery": () => (/* reexport safe */ _static_query__WEBPACK_IMPORTED_MODULE_4__.useStaticQuery),
 /* harmony export */   "withAssetPrefix": () => (/* reexport safe */ gatsby_link__WEBPACK_IMPORTED_MODULE_3__.withAssetPrefix),
@@ -1161,12 +889,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var gatsby_react_router_scroll__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! gatsby-react-router-scroll */ "./node_modules/gatsby-react-router-scroll/index.js");
 /* harmony import */ var gatsby_link__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! gatsby-link */ "./node_modules/gatsby-link/dist/index.modern.mjs");
 /* harmony import */ var _static_query__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./static-query */ "./.cache/static-query.js");
-/* harmony import */ var gatsby_script__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! gatsby-script */ "./node_modules/gatsby-script/dist/index.modern.mjs");
+/* harmony import */ var _slice__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./slice */ "./.cache/slice.js");
+/* harmony import */ var gatsby_script__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! gatsby-script */ "./node_modules/gatsby-script/dist/index.modern.mjs");
 
 const prefetchPathname = _loader__WEBPACK_IMPORTED_MODULE_0__["default"].enqueue;
 function graphql() {
   throw new Error(`It appears like Gatsby is misconfigured. Gatsby related \`graphql\` calls ` + `are supposed to only be evaluated at compile time, and then compiled away. ` + `Unfortunately, something went wrong and the query was left in the compiled code.\n\n` + `Unless your site has a complex or custom babel/Gatsby configuration this is likely a bug in Gatsby.`);
 }
+
 
 
 
@@ -1189,12 +919,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "PageResourceStatus": () => (/* binding */ PageResourceStatus),
 /* harmony export */   "ProdLoader": () => (/* binding */ ProdLoader),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   "getSliceResults": () => (/* binding */ getSliceResults),
 /* harmony export */   "getStaticQueryResults": () => (/* binding */ getStaticQueryResults),
 /* harmony export */   "publicLoader": () => (/* binding */ publicLoader),
 /* harmony export */   "setLoader": () => (/* binding */ setLoader)
 /* harmony export */ });
 /* harmony import */ var react_server_dom_webpack__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react-server-dom-webpack */ "./node_modules/react-server-dom-webpack/index.js");
-/* harmony import */ var react_server_dom_webpack__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_server_dom_webpack__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _prefetch__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./prefetch */ "./.cache/prefetch.js");
 /* harmony import */ var _emitter__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./emitter */ "./.cache/emitter.js");
 /* harmony import */ var _find_path__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./find-path */ "./.cache/find-path.js");
@@ -1216,6 +946,7 @@ const PageResourceStatus = {
    */
   Success: `success`
 };
+const preferDefault = m => m && m.default || m;
 const stripSurroundingSlashes = s => {
   s = s[0] === `/` ? s.slice(1) : s;
   s = s.endsWith(`/`) ? s.slice(0, -1) : s;
@@ -1253,13 +984,15 @@ const doesConnectionSupportPrefetch = () => {
 // Regex that matches common search crawlers
 const BOT_REGEX = /bot|crawler|spider|crawling/i;
 const toPageResources = (pageData, component = null, head) => {
+  var _pageData$slicesMap;
   const page = {
     componentChunkName: pageData.componentChunkName,
     path: pageData.path,
     webpackCompilationHash: pageData.webpackCompilationHash,
     matchPath: pageData.matchPath,
     staticQueryHashes: pageData.staticQueryHashes,
-    getServerDataError: pageData.getServerDataError
+    getServerDataError: pageData.getServerDataError,
+    slicesMap: (_pageData$slicesMap = pageData.slicesMap) !== null && _pageData$slicesMap !== void 0 ? _pageData$slicesMap : {}
   };
   return {
     component,
@@ -1307,6 +1040,9 @@ class BaseLoader {
     this.staticQueryDb = {};
     this.pageDataDb = new Map();
     this.partialHydrationDb = new Map();
+    this.slicesDataDb = new Map();
+    this.sliceInflightDb = new Map();
+    this.slicesDb = new Map();
     this.isPrefetchQueueRunning = false;
     this.prefetchQueued = [];
     this.prefetchTriggered = new Set();
@@ -1496,6 +1232,24 @@ class BaseLoader {
       return pageData;
     });
   }
+  loadSliceDataJson(sliceName) {
+    if (this.slicesDataDb.has(sliceName)) {
+      const jsonPayload = this.slicesDataDb.get(sliceName);
+      return Promise.resolve({
+        sliceName,
+        jsonPayload
+      });
+    }
+    const url = `/slice-data/${sliceName}.json`;
+    return doFetch(url, `GET`).then(res => {
+      const jsonPayload = JSON.parse(res.responseText);
+      this.slicesDataDb.set(sliceName, jsonPayload);
+      return {
+        sliceName,
+        jsonPayload
+      };
+    });
+  }
   findMatchPath(rawPath) {
     return (0,_find_path__WEBPACK_IMPORTED_MODULE_3__.findMatchPath)(rawPath);
   }
@@ -1518,47 +1272,122 @@ class BaseLoader {
     if (this.inFlightDb.has(pagePath)) {
       return this.inFlightDb.get(pagePath);
     }
-    let inFlightPromise;
-    if (false) {} else {
-      inFlightPromise = Promise.all([this.loadAppData(), this.loadPageDataJson(pagePath)]).then(allData => {
-        const result = allData[1];
-        if (result.status === PageResourceStatus.Error) {
-          return {
-            status: PageResourceStatus.Error
-          };
+    const loadDataPromises = [this.loadAppData(), this.loadPageDataJson(pagePath)];
+    if (false) {}
+    const inFlightPromise = Promise.all(loadDataPromises).then(allData => {
+      const [appDataResponse, pageDataResponse, rscDataResponse] = allData;
+      if (pageDataResponse.status === PageResourceStatus.Error || (rscDataResponse === null || rscDataResponse === void 0 ? void 0 : rscDataResponse.status) === PageResourceStatus.Error) {
+        return {
+          status: PageResourceStatus.Error
+        };
+      }
+      let pageData = pageDataResponse.payload;
+      const {
+        componentChunkName,
+        staticQueryHashes: pageStaticQueryHashes = [],
+        slicesMap = {}
+      } = pageData;
+      const finalResult = {};
+      const dedupedSliceNames = Array.from(new Set(Object.values(slicesMap)));
+      const loadSlice = slice => {
+        if (this.slicesDb.has(slice.name)) {
+          return this.slicesDb.get(slice.name);
+        } else if (this.sliceInflightDb.has(slice.name)) {
+          return this.sliceInflightDb.get(slice.name);
         }
-        let pageData = result.payload;
-        const {
-          componentChunkName,
-          staticQueryHashes = []
-        } = pageData;
-        const finalResult = {};
+        const inFlight = this.loadComponent(slice.componentChunkName).then(component => {
+          return {
+            component: preferDefault(component),
+            sliceContext: slice.result.sliceContext,
+            data: slice.result.data
+          };
+        });
+        this.sliceInflightDb.set(slice.name, inFlight);
+        inFlight.then(results => {
+          this.slicesDb.set(slice.name, results);
+          this.sliceInflightDb.delete(slice.name);
+        });
+        return inFlight;
+      };
+      return Promise.all(dedupedSliceNames.map(sliceName => this.loadSliceDataJson(sliceName))).then(slicesData => {
+        const slices = [];
+        const dedupedStaticQueryHashes = [...pageStaticQueryHashes];
+        for (const {
+          jsonPayload,
+          sliceName
+        } of Object.values(slicesData)) {
+          slices.push({
+            name: sliceName,
+            ...jsonPayload
+          });
+          for (const staticQueryHash of jsonPayload.staticQueryHashes) {
+            if (!dedupedStaticQueryHashes.includes(staticQueryHash)) {
+              dedupedStaticQueryHashes.push(staticQueryHash);
+            }
+          }
+        }
+        const loadChunkPromises = [Promise.all(slices.map(loadSlice)), this.loadComponent(componentChunkName, `head`)];
+        if (true) {
+          loadChunkPromises.push(this.loadComponent(componentChunkName));
+        }
 
         // In develop we have separate chunks for template and Head components
         // to enable HMR (fast refresh requires single exports).
         // In production we have shared chunk with both exports. Double loadComponent here
         // will be deduped by webpack runtime resulting in single request and single module
         // being loaded for both `component` and `head`.
-        const componentChunkPromise = Promise.all([this.loadComponent(componentChunkName), this.loadComponent(componentChunkName, `head`)]).then(([component, head]) => {
+        // get list of components to get
+        const componentChunkPromises = Promise.all(loadChunkPromises).then(components => {
+          const [sliceComponents, headComponent, pageComponent] = components;
           finalResult.createdAt = new Date();
-          let pageResources;
-          if (!component || component instanceof Error) {
+          for (const sliceComponent of sliceComponents) {
+            if (!sliceComponent || sliceComponent instanceof Error) {
+              finalResult.status = PageResourceStatus.Error;
+              finalResult.error = sliceComponent;
+            }
+          }
+          if ( true && (!pageComponent || pageComponent instanceof Error)) {
             finalResult.status = PageResourceStatus.Error;
-            finalResult.error = component;
-          } else {
+            finalResult.error = pageComponent;
+          }
+          let pageResources;
+          if (finalResult.status !== PageResourceStatus.Error) {
             finalResult.status = PageResourceStatus.Success;
-            if (result.notFound === true) {
+            if (pageDataResponse.notFound === true || (rscDataResponse === null || rscDataResponse === void 0 ? void 0 : rscDataResponse.notFound) === true) {
               finalResult.notFound = true;
             }
             pageData = Object.assign(pageData, {
-              webpackCompilationHash: allData[0] ? allData[0].webpackCompilationHash : ``
+              webpackCompilationHash: appDataResponse ? appDataResponse.webpackCompilationHash : ``
             });
-            pageResources = toPageResources(pageData, component, head);
+            if (typeof (rscDataResponse === null || rscDataResponse === void 0 ? void 0 : rscDataResponse.payload) === `string`) {
+              pageResources = toPageResources(pageData, null, headComponent);
+              pageResources.partialHydration = rscDataResponse.payload;
+              const readableStream = new ReadableStream({
+                start(controller) {
+                  const te = new TextEncoder();
+                  controller.enqueue(te.encode(rscDataResponse.payload));
+                },
+                pull(controller) {
+                  // close on next read when queue is empty
+                  controller.close();
+                },
+                cancel() {}
+              });
+              return waitForResponse((0,react_server_dom_webpack__WEBPACK_IMPORTED_MODULE_0__.createFromReadableStream)(readableStream)).then(result => {
+                pageResources.partialHydration = result;
+                return pageResources;
+              });
+            } else {
+              pageResources = toPageResources(pageData, pageComponent, headComponent);
+            }
           }
+
           // undefined if final result is an error
           return pageResources;
         });
-        const staticQueryBatchPromise = Promise.all(staticQueryHashes.map(staticQueryHash => {
+
+        // get list of static queries to get
+        const staticQueryBatchPromise = Promise.all(dedupedStaticQueryHashes.map(staticQueryHash => {
           // Check for cache in case this static query result has already been loaded
           if (this.staticQueryDb[staticQueryHash]) {
             const jsonPayload = this.staticQueryDb[staticQueryHash];
@@ -1587,7 +1416,7 @@ class BaseLoader {
           });
           return staticQueryResultsMap;
         });
-        return Promise.all([componentChunkPromise, staticQueryBatchPromise]).then(([pageResources, staticQueryResults]) => {
+        return Promise.all([componentChunkPromises, staticQueryBatchPromise]).then(([pageResources, staticQueryResults]) => {
           let payload;
           if (pageResources) {
             payload = {
@@ -1617,7 +1446,7 @@ class BaseLoader {
           };
         });
       });
-    }
+    });
     inFlightPromise.then(() => {
       this.inFlightDb.delete(pagePath);
     }).catch(error => {
@@ -1906,6 +1735,13 @@ function getStaticQueryResults() {
     return {};
   }
 }
+function getSliceResults() {
+  if (instance) {
+    return instance.slicesDb;
+  } else {
+    return {};
+  }
+}
 
 /***/ }),
 
@@ -2063,6 +1899,295 @@ function maybeGetBrowserRedirect(pathname) {
 
 /***/ }),
 
+/***/ "./.cache/slice.js":
+/*!*************************!*\
+  !*** ./.cache/slice.js ***!
+  \*************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Slice": () => (/* binding */ Slice)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _slice_server_slice__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./slice/server-slice */ "./.cache/slice/server-slice.js");
+/* harmony import */ var _slice_inline_slice__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./slice/inline-slice */ "./.cache/slice/inline-slice.js");
+/* harmony import */ var _slice_context__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./slice/context */ "./.cache/slice/context.js");
+"use client";
+
+
+
+
+
+function Slice(props) {
+  if (true) {
+    // we use sliceName internally, so remap alias to sliceName
+    const internalProps = {
+      ...props,
+      sliceName: props.alias
+    };
+    delete internalProps.alias;
+    delete internalProps.__renderedByLocation;
+    const slicesContext = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(_slice_context__WEBPACK_IMPORTED_MODULE_3__.SlicesContext);
+
+    // validate props
+    const propErrors = validateSliceProps(props);
+    if (Object.keys(propErrors).length) {
+      throw new SlicePropsError(slicesContext.renderEnvironment === `browser`, internalProps.sliceName, propErrors, props.__renderedByLocation);
+    }
+    if (slicesContext.renderEnvironment === `server`) {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_slice_server_slice__WEBPACK_IMPORTED_MODULE_1__.ServerSlice, internalProps);
+    } else if (slicesContext.renderEnvironment === `browser`) {
+      // in the browser, we'll just render the component as is
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_slice_inline_slice__WEBPACK_IMPORTED_MODULE_2__.InlineSlice, internalProps);
+    } else if (slicesContext.renderEnvironment === `engines`) {
+      // if we're in SSR, we'll just render the component as is
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_slice_inline_slice__WEBPACK_IMPORTED_MODULE_2__.InlineSlice, internalProps);
+    } else if (slicesContext.renderEnvironment === `slices`) {
+      // we are not yet supporting nested slices
+
+      let additionalContextMessage = ``;
+
+      // just in case generating additional contextual information fails, we still want the base message to show
+      // and not show another cryptic error message
+      try {
+        additionalContextMessage = `\n\nSlice component "${slicesContext.sliceRoot.name}" (${slicesContext.sliceRoot.componentPath}) tried to render <Slice alias="${props.alias}"/>`;
+      } catch {
+        // don't need to handle it, we will just skip the additional context message if we fail to generate it
+      }
+      throw new Error(`Nested slices are not supported.${additionalContextMessage}\n\nSee https://v5.gatsbyjs.com/docs/reference/built-in-components/gatsby-slice#nested-slices`);
+    } else {
+      throw new Error(`Slice context "${slicesContext.renderEnvironment}" is not supported.`);
+    }
+  } else {}
+}
+class SlicePropsError extends Error {
+  constructor(inBrowser, sliceName, propErrors, renderedByLocation) {
+    const errors = Object.entries(propErrors).map(([key, value]) => `not serializable "${value}" type passed to "${key}" prop`).join(`, `);
+    const name = `SlicePropsError`;
+    let stack = ``;
+    let message = ``;
+    if (inBrowser) {
+      // They're just (kinda) kidding, I promise... You can still work here <3
+      //   https://www.gatsbyjs.com/careers/
+      const fullStack = react__WEBPACK_IMPORTED_MODULE_0___default().__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactDebugCurrentFrame.getCurrentStack();
+
+      // remove the first line of the stack trace
+      const stackLines = fullStack.trim().split(`\n`).slice(1);
+      stackLines[0] = stackLines[0].trim();
+      stack = `\n` + stackLines.join(`\n`);
+      message = `Slice "${sliceName}" was passed props that are not serializable (${errors}).`;
+    } else {
+      // we can't really grab any extra info outside of the browser, so just print what we can
+      message = `${name}: Slice "${sliceName}" was passed props that are not serializable (${errors}).`;
+      const stackLines = new Error().stack.trim().split(`\n`).slice(2);
+      stack = `${message}\n${stackLines.join(`\n`)}`;
+    }
+    super(message);
+    this.name = name;
+    if (stack) {
+      this.stack = stack;
+    } else {
+      Error.captureStackTrace(this, SlicePropsError);
+    }
+    if (renderedByLocation) {
+      this.forcedLocation = {
+        ...renderedByLocation,
+        functionName: `Slice`
+      };
+    }
+  }
+}
+const validateSliceProps = (props, errors = {}, seenObjects = [], path = null) => {
+  // recursively validate all props
+  for (const [name, value] of Object.entries(props)) {
+    if (value === undefined || value === null || !path && name === `children`) {
+      continue;
+    }
+    const propPath = path ? `${path}.${name}` : name;
+    if (typeof value === `function`) {
+      errors[propPath] = typeof value;
+    } else if (typeof value === `object` && seenObjects.indexOf(value) <= 0) {
+      seenObjects.push(value);
+      validateSliceProps(value, errors, seenObjects, propPath);
+    }
+  }
+  return errors;
+};
+
+/***/ }),
+
+/***/ "./.cache/slice/context.js":
+/*!*********************************!*\
+  !*** ./.cache/slice/context.js ***!
+  \*********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "SlicesContext": () => (/* binding */ SlicesContext),
+/* harmony export */   "SlicesMapContext": () => (/* binding */ SlicesMapContext),
+/* harmony export */   "SlicesPropsContext": () => (/* binding */ SlicesPropsContext),
+/* harmony export */   "SlicesResultsContext": () => (/* binding */ SlicesResultsContext)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+const SlicesResultsContext = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createContext({});
+const SlicesContext = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createContext({});
+const SlicesMapContext = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createContext({});
+const SlicesPropsContext = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createContext({});
+
+
+/***/ }),
+
+/***/ "./.cache/slice/inline-slice.js":
+/*!**************************************!*\
+  !*** ./.cache/slice/inline-slice.js ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "InlineSlice": () => (/* binding */ InlineSlice)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _context__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./context */ "./.cache/slice/context.js");
+
+
+const InlineSlice = ({
+  sliceName,
+  allowEmpty,
+  children,
+  ...sliceProps
+}) => {
+  const slicesMap = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(_context__WEBPACK_IMPORTED_MODULE_1__.SlicesMapContext);
+  const slicesResultsMap = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(_context__WEBPACK_IMPORTED_MODULE_1__.SlicesResultsContext);
+  const concreteSliceName = slicesMap[sliceName];
+  const slice = slicesResultsMap.get(concreteSliceName);
+  if (!slice) {
+    if (allowEmpty) {
+      return null;
+    } else {
+      throw new Error(`Slice "${concreteSliceName}" for "${sliceName}" slot not found`);
+    }
+  }
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(slice.component, Object.assign({
+    sliceContext: slice.sliceContext,
+    data: slice.data
+  }, sliceProps), children);
+};
+
+/***/ }),
+
+/***/ "./.cache/slice/server-slice-renderer.js":
+/*!***********************************************!*\
+  !*** ./.cache/slice/server-slice-renderer.js ***!
+  \***********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ServerSliceRenderer": () => (/* binding */ ServerSliceRenderer)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+const ServerSliceRenderer = ({
+  sliceId,
+  children
+}) => {
+  const contents = [/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(`slice-start`, {
+    id: `${sliceId}-1`
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(`slice-end`, {
+    id: `${sliceId}-1`
+  })];
+  if (children) {
+    // if children exist, we split the slice into a before and after piece
+    // see renderSlices in render-html
+    contents.push(children);
+    contents.push( /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(`slice-start`, {
+      id: `${sliceId}-2`
+    }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(`slice-end`, {
+      id: `${sliceId}-2`
+    }));
+  }
+  return contents;
+};
+
+/***/ }),
+
+/***/ "./.cache/slice/server-slice.js":
+/*!**************************************!*\
+  !*** ./.cache/slice/server-slice.js ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ServerSlice": () => (/* binding */ ServerSlice)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var gatsby_core_utils_create_content_digest__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! gatsby-core-utils/create-content-digest */ "./node_modules/gatsby-core-utils/dist/create-content-digest.mjs");
+/* harmony import */ var _context__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./context */ "./.cache/slice/context.js");
+/* harmony import */ var _server_slice_renderer__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./server-slice-renderer */ "./.cache/slice/server-slice-renderer.js");
+
+
+
+
+const getSliceId = (sliceName, sliceProps) => {
+  if (!Object.keys(sliceProps).length) {
+    return sliceName;
+  }
+  const propsString = (0,gatsby_core_utils_create_content_digest__WEBPACK_IMPORTED_MODULE_1__.createContentDigest)(sliceProps);
+  return `${sliceName}-${propsString}`;
+};
+const ServerSlice = ({
+  sliceName,
+  allowEmpty,
+  children,
+  ...sliceProps
+}) => {
+  const slicesMap = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(_context__WEBPACK_IMPORTED_MODULE_2__.SlicesMapContext);
+  const slicesProps = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(_context__WEBPACK_IMPORTED_MODULE_2__.SlicesPropsContext);
+  const concreteSliceName = slicesMap[sliceName];
+  if (!concreteSliceName) {
+    if (allowEmpty) {
+      return null;
+    } else {
+      throw new Error(`Slice "${concreteSliceName}" for "${sliceName}" slot not found`);
+    }
+  }
+  const sliceId = getSliceId(concreteSliceName, sliceProps);
+
+  // set props on context object for static-entry to return
+  let sliceUsage = slicesProps[sliceId];
+  if (!sliceUsage) {
+    slicesProps[sliceId] = sliceUsage = {
+      props: sliceProps,
+      sliceName: concreteSliceName,
+      hasChildren: !!children
+    };
+  } else {
+    if (children) {
+      sliceUsage.hasChildren = true;
+    }
+  }
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_server_slice_renderer__WEBPACK_IMPORTED_MODULE_3__.ServerSliceRenderer, {
+    sliceId: sliceId
+  }, children);
+};
+
+/***/ }),
+
 /***/ "./.cache/static-query.js":
 /*!********************************!*\
   !*** ./.cache/static-query.js ***!
@@ -2074,20 +2199,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "StaticQuery": () => (/* binding */ StaticQuery),
 /* harmony export */   "StaticQueryContext": () => (/* binding */ StaticQueryContext),
-/* harmony export */   "StaticQueryServerContext": () => (/* binding */ StaticQueryServerContext),
 /* harmony export */   "useStaticQuery": () => (/* binding */ useStaticQuery)
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! prop-types */ "./node_modules/prop-types/index.js");
-/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(prop_types__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! prop-types */ "./node_modules/prop-types/index.js");
+/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(prop_types__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _context_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./context-utils */ "./.cache/context-utils.js");
 
 
-const StaticQueryContext = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createContext({});
-let StaticQueryServerContext = null;
-if ((react__WEBPACK_IMPORTED_MODULE_0___default().createServerContext)) {
-  StaticQueryServerContext = react__WEBPACK_IMPORTED_MODULE_0___default().createServerContext(`StaticQuery`, {});
-}
+
+const StaticQueryContext = (0,_context_utils__WEBPACK_IMPORTED_MODULE_1__.createServerOrClientContext)(`StaticQuery`, {});
 function StaticQueryDataRenderer({
   staticQueryData,
   data,
@@ -2097,8 +2219,9 @@ function StaticQueryDataRenderer({
   const finalData = data ? data.data : staticQueryData[query] && staticQueryData[query].data;
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, finalData && render(finalData), !finalData && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, "Loading (StaticQuery)"));
 }
+let warnedAboutStaticQuery = false;
 
-// TODO(v5): Remove completely
+// TODO(v6): Remove completely
 const StaticQuery = props => {
   const {
     data,
@@ -2106,6 +2229,10 @@ const StaticQuery = props => {
     render,
     children
   } = props;
+  if ( true && !warnedAboutStaticQuery) {
+    console.warn(`The <StaticQuery /> component is deprecated and will be removed in Gatsby v6. Use useStaticQuery instead. Refer to the migration guide for more information: https://gatsby.dev/migrating-4-to-5/#staticquery--is-deprecated`);
+    warnedAboutStaticQuery = true;
+  }
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(StaticQueryContext.Consumer, null, staticQueryData => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(StaticQueryDataRenderer, {
     data: data,
     query: query,
@@ -2114,10 +2241,10 @@ const StaticQuery = props => {
   }));
 };
 StaticQuery.propTypes = {
-  data: (prop_types__WEBPACK_IMPORTED_MODULE_1___default().object),
-  query: (prop_types__WEBPACK_IMPORTED_MODULE_1___default().string.isRequired),
-  render: (prop_types__WEBPACK_IMPORTED_MODULE_1___default().func),
-  children: (prop_types__WEBPACK_IMPORTED_MODULE_1___default().func)
+  data: (prop_types__WEBPACK_IMPORTED_MODULE_2___default().object),
+  query: (prop_types__WEBPACK_IMPORTED_MODULE_2___default().string.isRequired),
+  render: (prop_types__WEBPACK_IMPORTED_MODULE_2___default().func),
+  children: (prop_types__WEBPACK_IMPORTED_MODULE_2___default().func)
 };
 const useStaticQuery = query => {
   var _context$query;
@@ -2125,14 +2252,7 @@ const useStaticQuery = query => {
     // TODO(v5): Remove since we require React >= 18
     throw new Error(`You're likely using a version of React that doesn't support Hooks\n` + `Please update React and ReactDOM to 16.8.0 or later to use the useStaticQuery hook.`);
   }
-  let context;
-
-  // Can we get a better check here?
-  if (StaticQueryServerContext && Object.keys(StaticQueryServerContext._currentValue).length) {
-    context = react__WEBPACK_IMPORTED_MODULE_0___default().useContext(StaticQueryServerContext);
-  } else {
-    context = react__WEBPACK_IMPORTED_MODULE_0___default().useContext(StaticQueryContext);
-  }
+  const context = react__WEBPACK_IMPORTED_MODULE_0___default().useContext(StaticQueryContext);
 
   // query is a stringified number like `3303882` when wrapped with graphql, If a user forgets
   // to wrap the query in a grqphql, then casting it to a Number results in `NaN` allowing us to
@@ -2265,13 +2385,762 @@ function mitt(all                 ) {
 
 /***/ }),
 
-/***/ "./node_modules/react-server-dom-webpack/index.js":
-/*!********************************************************!*\
-  !*** ./node_modules/react-server-dom-webpack/index.js ***!
-  \********************************************************/
-/***/ (() => {
+/***/ "./node_modules/node-object-hash/dist/hasher.js":
+/*!******************************************************!*\
+  !*** ./node_modules/node-object-hash/dist/hasher.js ***!
+  \******************************************************/
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
+"use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var objectSorter_1 = __importDefault(__webpack_require__(/*! ./objectSorter */ "./node_modules/node-object-hash/dist/objectSorter.js"));
+var crypto_1 = __importDefault(__webpack_require__(/*! crypto */ "crypto"));
+/**
+ * Default hash algorithm
+ */
+var DEFAULT_ALG = 'sha256';
+/**
+ * Default hash string enoding
+ */
+var DEFAULT_ENC = 'hex';
+/**
+ * Hasher constructor
+ * @param options hasher options
+ * @return hasher instance
+ */
+function hasher(options) {
+    if (options === void 0) { options = {}; }
+    var sortObject = (0, objectSorter_1.default)(options);
+    /**
+     * Object hash function
+     * @param obj object to hash
+     * @param opts hasher options
+     * @returns hash string
+     */
+    function hashObject(obj, opts) {
+        if (opts === void 0) { opts = {}; }
+        var alg = opts.alg || options.alg || DEFAULT_ALG;
+        var enc = opts.enc || options.enc || DEFAULT_ENC;
+        var sorted = sortObject(obj);
+        return crypto_1.default.createHash(alg).update(sorted).digest(enc);
+    }
+    return {
+        hash: hashObject,
+        sort: sortObject,
+        sortObject: sortObject,
+    };
+}
+module.exports = hasher;
+//# sourceMappingURL=hasher.js.map
+
+/***/ }),
+
+/***/ "./node_modules/node-object-hash/dist/objectSorter.js":
+/*!************************************************************!*\
+  !*** ./node_modules/node-object-hash/dist/objectSorter.js ***!
+  \************************************************************/
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var typeGuess_1 = __webpack_require__(/*! ./typeGuess */ "./node_modules/node-object-hash/dist/typeGuess.js");
+var str = __importStar(__webpack_require__(/*! ./stringifiers */ "./node_modules/node-object-hash/dist/stringifiers.js"));
+/**
+ * Object sorter consturctor
+ * @param options object transformation options
+ * @return function that transforms object to strings
+ */
+function objectSorter(options) {
+    if (options === void 0) { options = {}; }
+    var _a = __assign({ sort: true, coerce: true, trim: false }, options), sort = _a.sort, coerce = _a.coerce, trim = _a.trim;
+    var stringifiers = {
+        unknown: function _unknown(obj) {
+            var _a, _b;
+            // `unknonw` - is a typo, saved for backward compatibility
+            var constructorName = (_b = (_a = obj.constructor) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'unknonw';
+            var objectName = typeof obj.toString === 'function' ? obj.toString() : 'unknown';
+            return "<:" + constructorName + ">:" + objectName;
+        },
+    };
+    var sortOptions = {
+        array: typeof sort === 'boolean' ? sort : sort.array,
+        typedArray: typeof sort === 'boolean' ? false : sort.typedArray,
+        object: typeof sort === 'boolean' ? sort : sort.object,
+        set: typeof sort === 'boolean' ? sort : sort.set,
+        map: typeof sort === 'boolean' ? sort : sort.map,
+    };
+    var coerceOptions = {
+        boolean: typeof coerce === 'boolean' ? coerce : coerce.boolean,
+        number: typeof coerce === 'boolean' ? coerce : coerce.number,
+        bigint: typeof coerce === 'boolean' ? coerce : coerce.bigint,
+        string: typeof coerce === 'boolean' ? coerce : coerce.string,
+        undefined: typeof coerce === 'boolean' ? coerce : coerce.undefined,
+        null: typeof coerce === 'boolean' ? coerce : coerce.null,
+        symbol: typeof coerce === 'boolean' ? coerce : coerce.symbol,
+        function: typeof coerce === 'boolean' ? coerce : coerce.function,
+        date: typeof coerce === 'boolean' ? coerce : coerce.date,
+        set: typeof coerce === 'boolean' ? coerce : coerce.set,
+    };
+    var trimOptions = {
+        string: typeof trim === 'boolean' ? trim : trim.string,
+        function: typeof trim === 'boolean' ? trim : trim.function,
+    };
+    stringifiers.hashable = str._hashable.bind(stringifiers);
+    if (trimOptions.string) {
+        stringifiers.string = coerceOptions.string
+            ? str._stringTrimCoerce.bind(stringifiers)
+            : str._stringTrim.bind(stringifiers);
+    }
+    else {
+        stringifiers.string = coerceOptions.string
+            ? str._stringCoerce.bind(stringifiers)
+            : str._string.bind(stringifiers);
+    }
+    stringifiers.number = coerceOptions.number
+        ? str._numberCoerce.bind(stringifiers)
+        : str._number.bind(stringifiers);
+    stringifiers.bigint = coerceOptions.bigint
+        ? str._bigIntCoerce.bind(stringifiers)
+        : str._bigInt.bind(stringifiers);
+    stringifiers.boolean = coerceOptions.boolean
+        ? str._booleanCoerce.bind(stringifiers)
+        : str._boolean.bind(stringifiers);
+    stringifiers.symbol = coerceOptions.symbol
+        ? str._symbolCoerce.bind(stringifiers)
+        : str._symbol.bind(stringifiers);
+    stringifiers.undefined = coerceOptions.undefined
+        ? str._undefinedCoerce.bind(stringifiers)
+        : str._undefined.bind(stringifiers);
+    stringifiers.null = coerceOptions.null
+        ? str._nullCoerce.bind(stringifiers)
+        : str._null.bind(stringifiers);
+    if (trimOptions.function) {
+        stringifiers.function = coerceOptions.function
+            ? str._functionTrimCoerce.bind(stringifiers)
+            : str._functionTrim.bind(stringifiers);
+    }
+    else {
+        stringifiers.function = coerceOptions.function
+            ? str._functionCoerce.bind(stringifiers)
+            : str._function.bind(stringifiers);
+    }
+    stringifiers.date = coerceOptions.date
+        ? str._dateCoerce.bind(stringifiers)
+        : str._date.bind(stringifiers);
+    stringifiers.array = sortOptions.array
+        ? str._arraySort.bind(stringifiers)
+        : str._array.bind(stringifiers);
+    stringifiers.typedarray = sortOptions.typedArray
+        ? str._typedArraySort.bind(stringifiers)
+        : str._typedArray.bind(stringifiers);
+    if (sortOptions.set) {
+        stringifiers.set = coerceOptions.set
+            ? str._setSortCoerce.bind(stringifiers)
+            : str._setSort.bind(stringifiers);
+    }
+    else {
+        stringifiers.set = coerceOptions.set
+            ? str._setCoerce.bind(stringifiers)
+            : str._set.bind(stringifiers);
+    }
+    stringifiers.object = sortOptions.object
+        ? str._objectSort.bind(stringifiers)
+        : str._object.bind(stringifiers);
+    stringifiers.map = sortOptions.map
+        ? str._mapSort.bind(stringifiers)
+        : str._map.bind(stringifiers);
+    /**
+     * Serializes object to string
+     * @param obj object
+     */
+    function objectToString(obj) {
+        return stringifiers[(0, typeGuess_1.guessType)(obj)](obj);
+    }
+    return objectToString;
+}
+module.exports = objectSorter;
+//# sourceMappingURL=objectSorter.js.map
+
+/***/ }),
+
+/***/ "./node_modules/node-object-hash/dist/stringifiers.js":
+/*!************************************************************!*\
+  !*** ./node_modules/node-object-hash/dist/stringifiers.js ***!
+  \************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * @private
+ * @inner
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports._mapSort = exports._map = exports._objectSort = exports._object = exports._setCoerce = exports._set = exports._setSort = exports._setSortCoerce = exports._typedArray = exports._typedArraySort = exports._array = exports._arraySort = exports._date = exports._dateCoerce = exports._functionTrim = exports._functionTrimCoerce = exports._function = exports._functionCoerce = exports._null = exports._nullCoerce = exports._undefined = exports._undefinedCoerce = exports._symbol = exports._symbolCoerce = exports._boolean = exports._booleanCoerce = exports._bigInt = exports._bigIntCoerce = exports._number = exports._numberCoerce = exports._stringTrim = exports._stringTrimCoerce = exports._string = exports._stringCoerce = exports._hashable = exports.PREFIX = void 0;
+var typeGuess_1 = __webpack_require__(/*! ./typeGuess */ "./node_modules/node-object-hash/dist/typeGuess.js");
+/**
+ * Prefixes that used when type coercion is disabled
+ */
+exports.PREFIX = {
+    string: '<:s>',
+    number: '<:n>',
+    bigint: '<:bi>',
+    boolean: '<:b>',
+    symbol: '<:smbl>',
+    undefined: '<:undf>',
+    null: '<:null>',
+    function: '<:func>',
+    array: '',
+    date: '<:date>',
+    set: '<:set>',
+    map: '<:map>',
+};
+/**
+ * Converts Hashable to string
+ * @private
+ * @param obj object to convert
+ * @returns object string representation
+ */
+function _hashable(obj) {
+    return obj.toHashableString();
+}
+exports._hashable = _hashable;
+/**
+ * Converts string to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _stringCoerce(obj) {
+    return obj;
+}
+exports._stringCoerce = _stringCoerce;
+/**
+ * Converts string to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _string(obj) {
+    return exports.PREFIX.string + ':' + obj;
+}
+exports._string = _string;
+/**
+ * Converts string to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _stringTrimCoerce(obj) {
+    return obj.replace(/(\s+|\t|\r\n|\n|\r)/gm, ' ').trim();
+}
+exports._stringTrimCoerce = _stringTrimCoerce;
+/**
+ * Converts string to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _stringTrim(obj) {
+    return exports.PREFIX.string + ':' + obj.replace(/(\s+|\t|\r\n|\n|\r)/gm, ' ').trim();
+}
+exports._stringTrim = _stringTrim;
+/**
+ * Converts number to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _numberCoerce(obj) {
+    return obj.toString();
+}
+exports._numberCoerce = _numberCoerce;
+/**
+ * Converts number to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _number(obj) {
+    return exports.PREFIX.number + ":" + obj;
+}
+exports._number = _number;
+/**
+ * Converts BigInt to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _bigIntCoerce(obj) {
+    return obj.toString();
+}
+exports._bigIntCoerce = _bigIntCoerce;
+/**
+ * Converts BigInt to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _bigInt(obj) {
+    return exports.PREFIX.bigint + ":" + obj.toString();
+}
+exports._bigInt = _bigInt;
+/**
+ * Converts boolean to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _booleanCoerce(obj) {
+    return obj ? '1' : '0';
+}
+exports._booleanCoerce = _booleanCoerce;
+/**
+ * Converts boolean to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _boolean(obj) {
+    return exports.PREFIX.boolean + ':' + obj.toString();
+}
+exports._boolean = _boolean;
+/**
+ * Converts symbol to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _symbolCoerce() {
+    return exports.PREFIX.symbol;
+}
+exports._symbolCoerce = _symbolCoerce;
+/**
+ * Converts symbol to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _symbol(obj) {
+    return exports.PREFIX.symbol + ':' + obj.toString();
+}
+exports._symbol = _symbol;
+/**
+ * Converts undefined to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _undefinedCoerce() {
+    return '';
+}
+exports._undefinedCoerce = _undefinedCoerce;
+/**
+ * Converts undefined to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _undefined() {
+    return exports.PREFIX.undefined;
+}
+exports._undefined = _undefined;
+/**
+ * Converts null to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _nullCoerce() {
+    return '';
+}
+exports._nullCoerce = _nullCoerce;
+/**
+ * Converts null to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _null() {
+    return exports.PREFIX.null;
+}
+exports._null = _null;
+/**
+ * Converts function to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _functionCoerce(obj) {
+    return obj.name + '=>' + obj.toString();
+}
+exports._functionCoerce = _functionCoerce;
+/**
+ * Converts function to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _function(obj) {
+    return exports.PREFIX.function + ':' + obj.name + '=>' + obj.toString();
+}
+exports._function = _function;
+/**
+ * Converts function to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _functionTrimCoerce(obj) {
+    return (obj.name +
+        '=>' +
+        obj
+            .toString()
+            .replace(/(\s+|\t|\r\n|\n|\r)/gm, ' ')
+            .trim());
+}
+exports._functionTrimCoerce = _functionTrimCoerce;
+/**
+ * Converts function to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _functionTrim(obj) {
+    return (exports.PREFIX.function +
+        ':' +
+        obj.name +
+        '=>' +
+        obj
+            .toString()
+            .replace(/(\s+|\t|\r\n|\n|\r)/gm, ' ')
+            .trim());
+}
+exports._functionTrim = _functionTrim;
+/**
+ * Converts date to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _dateCoerce(obj) {
+    return obj.toISOString();
+}
+exports._dateCoerce = _dateCoerce;
+/**
+ * Converts date to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _date(obj) {
+    return exports.PREFIX.date + ':' + obj.toISOString();
+}
+exports._date = _date;
+/**
+ * Converts array to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _arraySort(obj) {
+    var stringifiers = this;
+    return ('[' +
+        obj
+            .map(function (item) {
+            return stringifiers[(0, typeGuess_1.guessType)(item)](item);
+        })
+            .sort()
+            .toString() +
+        ']');
+}
+exports._arraySort = _arraySort;
+/**
+ * Converts array to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _array(obj) {
+    var stringifiers = this;
+    return ('[' +
+        obj
+            .map(function (item) {
+            return stringifiers[(0, typeGuess_1.guessType)(item)](item);
+        })
+            .toString() +
+        ']');
+}
+exports._array = _array;
+/**
+ * Converts TypedArray to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _typedArraySort(obj) {
+    var stringifiers = this;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    var values = Array.prototype.slice.call(obj);
+    return ('[' +
+        values
+            .map(function (num) {
+            return stringifiers[(0, typeGuess_1.guessType)(num)](num);
+        })
+            .sort()
+            .toString() +
+        ']');
+}
+exports._typedArraySort = _typedArraySort;
+/**
+ * Converts TypedArray to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _typedArray(obj) {
+    var stringifiers = this;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    var values = Array.prototype.slice.call(obj);
+    return ('[' +
+        values
+            .map(function (num) {
+            return stringifiers[(0, typeGuess_1.guessType)(num)](num);
+        })
+            .toString() +
+        ']');
+}
+exports._typedArray = _typedArray;
+/**
+ * Converts set to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _setSortCoerce(obj) {
+    return _arraySort.call(this, Array.from(obj));
+}
+exports._setSortCoerce = _setSortCoerce;
+/**
+ * Converts set to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _setSort(obj) {
+    return exports.PREFIX.set + ":" + _arraySort.call(this, Array.from(obj));
+}
+exports._setSort = _setSort;
+/**
+ * Converts set to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _set(obj) {
+    return exports.PREFIX.set + ":" + _array.call(this, Array.from(obj));
+}
+exports._set = _set;
+/**
+ * Converts set to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _setCoerce(obj) {
+    return _array.call(this, Array.from(obj));
+}
+exports._setCoerce = _setCoerce;
+/**
+ * Converts object to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _object(obj) {
+    var stringifiers = this;
+    var keys = Object.keys(obj);
+    var objArray = [];
+    for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+        var key = keys_1[_i];
+        var val = obj[key];
+        var valT = (0, typeGuess_1.guessType)(val);
+        objArray.push(key + ':' + stringifiers[valT](val));
+    }
+    return '{' + objArray.toString() + '}';
+}
+exports._object = _object;
+/**
+ * Converts object to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _objectSort(obj) {
+    var stringifiers = this;
+    var keys = Object.keys(obj).sort();
+    var objArray = [];
+    for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
+        var key = keys_2[_i];
+        var val = obj[key];
+        var valT = (0, typeGuess_1.guessType)(val);
+        objArray.push(key + ':' + stringifiers[valT](val));
+    }
+    return '{' + objArray.toString() + '}';
+}
+exports._objectSort = _objectSort;
+/**
+ * Converts map to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _map(obj) {
+    var stringifiers = this;
+    var arr = Array.from(obj);
+    var mapped = [];
+    for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
+        var item = arr_1[_i];
+        var _a = item, key = _a[0], value = _a[1];
+        mapped.push([
+            stringifiers[(0, typeGuess_1.guessType)(key)](key),
+            stringifiers[(0, typeGuess_1.guessType)(value)](value),
+        ]);
+    }
+    return '[' + mapped.join(';') + ']';
+}
+exports._map = _map;
+/**
+ * Converts map to string
+ * @private
+ * @param obj object to convert
+ * @return object string representation
+ */
+function _mapSort(obj) {
+    var stringifiers = this;
+    var arr = Array.from(obj);
+    var mapped = [];
+    for (var _i = 0, arr_2 = arr; _i < arr_2.length; _i++) {
+        var item = arr_2[_i];
+        var _a = item, key = _a[0], value = _a[1];
+        mapped.push([
+            stringifiers[(0, typeGuess_1.guessType)(key)](key),
+            stringifiers[(0, typeGuess_1.guessType)(value)](value),
+        ]);
+    }
+    return '[' + mapped.sort().join(';') + ']';
+}
+exports._mapSort = _mapSort;
+//# sourceMappingURL=stringifiers.js.map
+
+/***/ }),
+
+/***/ "./node_modules/node-object-hash/dist/typeGuess.js":
+/*!*********************************************************!*\
+  !*** ./node_modules/node-object-hash/dist/typeGuess.js ***!
+  \*********************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.guessType = exports.guessObjectType = exports.TYPE_MAP = void 0;
+/**
+ * Type mapping rules.
+ */
+exports.TYPE_MAP = {
+    Array: 'array',
+    Int8Array: 'typedarray',
+    Uint8Array: 'typedarray',
+    Uint8ClampedArray: 'typedarray',
+    Int16Array: 'typedarray',
+    Uint16Array: 'typedarray',
+    Int32Array: 'typedarray',
+    Uint32Array: 'typedarray',
+    Float32Array: 'typedarray',
+    Float64Array: 'typedarray',
+    BigUint64Array: 'typedarray',
+    BigInt64Array: 'typedarray',
+    Buffer: 'typedarray',
+    Map: 'map',
+    Set: 'set',
+    Date: 'date',
+    String: 'string',
+    Number: 'number',
+    BigInt: 'bigint',
+    Boolean: 'boolean',
+    Object: 'object',
+};
+/**
+ * Guess object type
+ * @param obj analyzed object
+ * @return object type
+ */
+function guessObjectType(obj) {
+    var _a, _b;
+    if (obj === null) {
+        return 'null';
+    }
+    if (instanceOfHashable(obj)) {
+        return 'hashable';
+    }
+    var type = (_b = (_a = obj.constructor) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'unknown';
+    return exports.TYPE_MAP[type] || 'unknown';
+}
+exports.guessObjectType = guessObjectType;
+/**
+ * Guess variable type
+ * @param obj analyzed variable
+ * @return variable type
+ */
+function guessType(obj) {
+    var type = typeof obj;
+    return type !== 'object' ? type : guessObjectType(obj);
+}
+exports.guessType = guessType;
+/**
+ * Identify if object is instance of Hashable interface
+ * @param object analyzed variable
+ * @return true if object has toHashableString property and this property is function
+ * otherwise return false
+ */
+function instanceOfHashable(object) {
+    return typeof object.toHashableString === 'function';
+}
+//# sourceMappingURL=typeGuess.js.map
 
 /***/ }),
 
@@ -2690,6 +3559,655 @@ exports.exclude = (input, filter, options) => {
 
 /***/ }),
 
+/***/ "./node_modules/react-server-dom-webpack/cjs/react-server-dom-webpack.development.js":
+/*!*******************************************************************************************!*\
+  !*** ./node_modules/react-server-dom-webpack/cjs/react-server-dom-webpack.development.js ***!
+  \*******************************************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+/**
+ * @license React
+ * react-server-dom-webpack.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+
+
+if (true) {
+  (function() {
+'use strict';
+
+var React = __webpack_require__(/*! react */ "react");
+
+function createStringDecoder() {
+  return new TextDecoder();
+}
+var decoderOptions = {
+  stream: true
+};
+function readPartialStringChunk(decoder, buffer) {
+  return decoder.decode(buffer, decoderOptions);
+}
+function readFinalStringChunk(decoder, buffer) {
+  return decoder.decode(buffer);
+}
+
+function parseModel(response, json) {
+  return JSON.parse(json, response._fromJSON);
+}
+
+// eslint-disable-next-line no-unused-vars
+function resolveModuleReference(bundlerConfig, moduleData) {
+  if (bundlerConfig) {
+    return bundlerConfig[moduleData.id][moduleData.name];
+  }
+
+  return moduleData;
+} // The chunk cache contains all the chunks we've preloaded so far.
+// If they're still pending they're a thenable. This map also exists
+// in Webpack but unfortunately it's not exposed so we have to
+// replicate it in user space. null means that it has already loaded.
+
+var chunkCache = new Map(); // Start preloading the modules since we might need them soon.
+// This function doesn't suspend.
+
+function preloadModule(moduleData) {
+  var chunks = moduleData.chunks;
+
+  for (var i = 0; i < chunks.length; i++) {
+    var chunkId = chunks[i];
+    var entry = chunkCache.get(chunkId);
+
+    if (entry === undefined) {
+      var thenable = __webpack_require__.e(chunkId);
+
+      var resolve = chunkCache.set.bind(chunkCache, chunkId, null);
+      var reject = chunkCache.set.bind(chunkCache, chunkId);
+      thenable.then(resolve, reject);
+      chunkCache.set(chunkId, thenable);
+    }
+  }
+} // Actually require the module or suspend if it's not yet ready.
+// Increase priority if necessary.
+
+function requireModule(moduleData) {
+  var chunks = moduleData.chunks;
+
+  for (var i = 0; i < chunks.length; i++) {
+    var chunkId = chunks[i];
+    var entry = chunkCache.get(chunkId);
+
+    if (entry !== null) {
+      // We assume that preloadModule has been called before.
+      // So we don't expect to see entry being undefined here, that's an error.
+      // Let's throw either an error or the Promise.
+      throw entry;
+    }
+  }
+
+  var moduleExports = __webpack_require__(moduleData.id);
+
+  if (moduleData.name === '*') {
+    // This is a placeholder value that represents that the caller imported this
+    // as a CommonJS module as is.
+    return moduleExports;
+  }
+
+  if (moduleData.name === '') {
+    // This is a placeholder value that represents that the caller accessed the
+    // default property of this if it was an ESM interop module.
+    return moduleExports.__esModule ? moduleExports.default : moduleExports;
+  }
+
+  return moduleExports[moduleData.name];
+}
+
+// ATTENTION
+// When adding new symbols to this file,
+// Please consider also adding to 'react-devtools-shared/src/backend/ReactSymbols'
+// The Symbol used to tag the ReactElement-like types.
+var REACT_ELEMENT_TYPE = Symbol.for('react.element');
+var REACT_LAZY_TYPE = Symbol.for('react.lazy');
+var REACT_SERVER_CONTEXT_DEFAULT_VALUE_NOT_LOADED = Symbol.for('react.default_value');
+
+var ReactSharedInternals = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+
+var ContextRegistry = ReactSharedInternals.ContextRegistry;
+function getOrCreateServerContext(globalName) {
+  if (!ContextRegistry[globalName]) {
+    ContextRegistry[globalName] = React.createServerContext(globalName, REACT_SERVER_CONTEXT_DEFAULT_VALUE_NOT_LOADED);
+  }
+
+  return ContextRegistry[globalName];
+}
+
+var PENDING = 0;
+var RESOLVED_MODEL = 1;
+var RESOLVED_MODULE = 2;
+var INITIALIZED = 3;
+var ERRORED = 4;
+
+function Chunk(status, value, response) {
+  this._status = status;
+  this._value = value;
+  this._response = response;
+}
+
+Chunk.prototype.then = function (resolve) {
+  var chunk = this;
+
+  if (chunk._status === PENDING) {
+    if (chunk._value === null) {
+      chunk._value = [];
+    }
+
+    chunk._value.push(resolve);
+  } else {
+    resolve();
+  }
+};
+
+function readChunk(chunk) {
+  switch (chunk._status) {
+    case INITIALIZED:
+      return chunk._value;
+
+    case RESOLVED_MODEL:
+      return initializeModelChunk(chunk);
+
+    case RESOLVED_MODULE:
+      return initializeModuleChunk(chunk);
+
+    case PENDING:
+      // eslint-disable-next-line no-throw-literal
+      throw chunk;
+
+    default:
+      throw chunk._value;
+  }
+}
+
+function readRoot() {
+  var response = this;
+  var chunk = getChunk(response, 0);
+  return readChunk(chunk);
+}
+
+function createPendingChunk(response) {
+  return new Chunk(PENDING, null, response);
+}
+
+function createErrorChunk(response, error) {
+  return new Chunk(ERRORED, error, response);
+}
+
+function createInitializedChunk(response, value) {
+  return new Chunk(INITIALIZED, value, response);
+}
+
+function wakeChunk(listeners) {
+  if (listeners !== null) {
+    for (var i = 0; i < listeners.length; i++) {
+      var listener = listeners[i];
+      listener();
+    }
+  }
+}
+
+function triggerErrorOnChunk(chunk, error) {
+  if (chunk._status !== PENDING) {
+    // We already resolved. We didn't expect to see this.
+    return;
+  }
+
+  var listeners = chunk._value;
+  var erroredChunk = chunk;
+  erroredChunk._status = ERRORED;
+  erroredChunk._value = error;
+  wakeChunk(listeners);
+}
+
+function createResolvedModelChunk(response, value) {
+  return new Chunk(RESOLVED_MODEL, value, response);
+}
+
+function createResolvedModuleChunk(response, value) {
+  return new Chunk(RESOLVED_MODULE, value, response);
+}
+
+function resolveModelChunk(chunk, value) {
+  if (chunk._status !== PENDING) {
+    // We already resolved. We didn't expect to see this.
+    return;
+  }
+
+  var listeners = chunk._value;
+  var resolvedChunk = chunk;
+  resolvedChunk._status = RESOLVED_MODEL;
+  resolvedChunk._value = value;
+  wakeChunk(listeners);
+}
+
+function resolveModuleChunk(chunk, value) {
+  if (chunk._status !== PENDING) {
+    // We already resolved. We didn't expect to see this.
+    return;
+  }
+
+  var listeners = chunk._value;
+  var resolvedChunk = chunk;
+  resolvedChunk._status = RESOLVED_MODULE;
+  resolvedChunk._value = value;
+  wakeChunk(listeners);
+}
+
+function initializeModelChunk(chunk) {
+  var value = parseModel(chunk._response, chunk._value);
+  var initializedChunk = chunk;
+  initializedChunk._status = INITIALIZED;
+  initializedChunk._value = value;
+  return value;
+}
+
+function initializeModuleChunk(chunk) {
+  var value = requireModule(chunk._value);
+  var initializedChunk = chunk;
+  initializedChunk._status = INITIALIZED;
+  initializedChunk._value = value;
+  return value;
+} // Report that any missing chunks in the model is now going to throw this
+// error upon read. Also notify any pending promises.
+
+
+function reportGlobalError(response, error) {
+  response._chunks.forEach(function (chunk) {
+    // If this chunk was already resolved or errored, it won't
+    // trigger an error but if it wasn't then we need to
+    // because we won't be getting any new data to resolve it.
+    triggerErrorOnChunk(chunk, error);
+  });
+}
+
+function createElement(type, key, props) {
+  var element = {
+    // This tag allows us to uniquely identify this as a React Element
+    $$typeof: REACT_ELEMENT_TYPE,
+    // Built-in properties that belong on the element
+    type: type,
+    key: key,
+    ref: null,
+    props: props,
+    // Record the component responsible for creating this element.
+    _owner: null
+  };
+
+  {
+    // We don't really need to add any of these but keeping them for good measure.
+    // Unfortunately, _store is enumerable in jest matchers so for equality to
+    // work, I need to keep it or make _store non-enumerable in the other file.
+    element._store = {};
+    Object.defineProperty(element._store, 'validated', {
+      configurable: false,
+      enumerable: false,
+      writable: true,
+      value: true // This element has already been validated on the server.
+
+    });
+    Object.defineProperty(element, '_self', {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: null
+    });
+    Object.defineProperty(element, '_source', {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: null
+    });
+  }
+
+  return element;
+}
+
+function createLazyChunkWrapper(chunk) {
+  var lazyType = {
+    $$typeof: REACT_LAZY_TYPE,
+    _payload: chunk,
+    _init: readChunk
+  };
+  return lazyType;
+}
+
+function getChunk(response, id) {
+  var chunks = response._chunks;
+  var chunk = chunks.get(id);
+
+  if (!chunk) {
+    chunk = createPendingChunk(response);
+    chunks.set(id, chunk);
+  }
+
+  return chunk;
+}
+
+function parseModelString(response, parentObject, value) {
+  switch (value[0]) {
+    case '$':
+      {
+        if (value === '$') {
+          return REACT_ELEMENT_TYPE;
+        } else if (value[1] === '$' || value[1] === '@') {
+          // This was an escaped string value.
+          return value.substring(1);
+        } else {
+          var id = parseInt(value.substring(1), 16);
+          var chunk = getChunk(response, id);
+          return readChunk(chunk);
+        }
+      }
+
+    case '@':
+      {
+        var _id = parseInt(value.substring(1), 16);
+
+        var _chunk = getChunk(response, _id); // We create a React.lazy wrapper around any lazy values.
+        // When passed into React, we'll know how to suspend on this.
+
+
+        return createLazyChunkWrapper(_chunk);
+      }
+  }
+
+  return value;
+}
+function parseModelTuple(response, value) {
+  var tuple = value;
+
+  if (tuple[0] === REACT_ELEMENT_TYPE) {
+    // TODO: Consider having React just directly accept these arrays as elements.
+    // Or even change the ReactElement type to be an array.
+    return createElement(tuple[1], tuple[2], tuple[3]);
+  }
+
+  return value;
+}
+function createResponse(bundlerConfig) {
+  var chunks = new Map();
+  var response = {
+    _bundlerConfig: bundlerConfig,
+    _chunks: chunks,
+    readRoot: readRoot
+  };
+  return response;
+}
+function resolveModel(response, id, model) {
+  var chunks = response._chunks;
+  var chunk = chunks.get(id);
+
+  if (!chunk) {
+    chunks.set(id, createResolvedModelChunk(response, model));
+  } else {
+    resolveModelChunk(chunk, model);
+  }
+}
+function resolveProvider(response, id, contextName) {
+  var chunks = response._chunks;
+  chunks.set(id, createInitializedChunk(response, getOrCreateServerContext(contextName).Provider));
+}
+function resolveModule(response, id, model) {
+  var chunks = response._chunks;
+  var chunk = chunks.get(id);
+  var moduleMetaData = parseModel(response, model);
+  var moduleReference = resolveModuleReference(response._bundlerConfig, moduleMetaData); // TODO: Add an option to encode modules that are lazy loaded.
+  // For now we preload all modules as early as possible since it's likely
+  // that we'll need them.
+
+  preloadModule(moduleReference);
+
+  if (!chunk) {
+    chunks.set(id, createResolvedModuleChunk(response, moduleReference));
+  } else {
+    resolveModuleChunk(chunk, moduleReference);
+  }
+}
+function resolveSymbol(response, id, name) {
+  var chunks = response._chunks; // We assume that we'll always emit the symbol before anything references it
+  // to save a few bytes.
+
+  chunks.set(id, createInitializedChunk(response, Symbol.for(name)));
+}
+function resolveError(response, id, message, stack) {
+  // eslint-disable-next-line react-internal/prod-error-codes
+  var error = new Error(message);
+  error.stack = stack;
+  var chunks = response._chunks;
+  var chunk = chunks.get(id);
+
+  if (!chunk) {
+    chunks.set(id, createErrorChunk(response, error));
+  } else {
+    triggerErrorOnChunk(chunk, error);
+  }
+}
+function close(response) {
+  // In case there are any remaining unresolved chunks, they won't
+  // be resolved now. So we need to issue an error to those.
+  // Ideally we should be able to early bail out if we kept a
+  // ref count of pending chunks.
+  reportGlobalError(response, new Error('Connection closed.'));
+}
+
+function processFullRow(response, row) {
+  if (row === '') {
+    return;
+  }
+
+  var tag = row[0]; // When tags that are not text are added, check them here before
+  // parsing the row as text.
+  // switch (tag) {
+  // }
+
+  var colon = row.indexOf(':', 1);
+  var id = parseInt(row.substring(1, colon), 16);
+  var text = row.substring(colon + 1);
+
+  switch (tag) {
+    case 'J':
+      {
+        resolveModel(response, id, text);
+        return;
+      }
+
+    case 'M':
+      {
+        resolveModule(response, id, text);
+        return;
+      }
+
+    case 'P':
+      {
+        resolveProvider(response, id, text);
+        return;
+      }
+
+    case 'S':
+      {
+        resolveSymbol(response, id, JSON.parse(text));
+        return;
+      }
+
+    case 'E':
+      {
+        var errorInfo = JSON.parse(text);
+        resolveError(response, id, errorInfo.message, errorInfo.stack);
+        return;
+      }
+
+    default:
+      {
+        throw new Error("Error parsing the data. It's probably an error code or network corruption.");
+      }
+  }
+}
+
+function processStringChunk(response, chunk, offset) {
+  var linebreak = chunk.indexOf('\n', offset);
+
+  while (linebreak > -1) {
+    var fullrow = response._partialRow + chunk.substring(offset, linebreak);
+    processFullRow(response, fullrow);
+    response._partialRow = '';
+    offset = linebreak + 1;
+    linebreak = chunk.indexOf('\n', offset);
+  }
+
+  response._partialRow += chunk.substring(offset);
+}
+function processBinaryChunk(response, chunk) {
+
+  var stringDecoder = response._stringDecoder;
+  var linebreak = chunk.indexOf(10); // newline
+
+  while (linebreak > -1) {
+    var fullrow = response._partialRow + readFinalStringChunk(stringDecoder, chunk.subarray(0, linebreak));
+    processFullRow(response, fullrow);
+    response._partialRow = '';
+    chunk = chunk.subarray(linebreak + 1);
+    linebreak = chunk.indexOf(10); // newline
+  }
+
+  response._partialRow += readPartialStringChunk(stringDecoder, chunk);
+}
+
+function createFromJSONCallback(response) {
+  return function (key, value) {
+    if (typeof value === 'string') {
+      // We can't use .bind here because we need the "this" value.
+      return parseModelString(response, this, value);
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      return parseModelTuple(response, value);
+    }
+
+    return value;
+  };
+}
+
+function createResponse$1(bundlerConfig) {
+  // NOTE: CHECK THE COMPILER OUTPUT EACH TIME YOU CHANGE THIS.
+  // It should be inlined to one object literal but minor changes can break it.
+  var stringDecoder =  createStringDecoder() ;
+  var response = createResponse(bundlerConfig);
+  response._partialRow = '';
+
+  {
+    response._stringDecoder = stringDecoder;
+  } // Don't inline this call because it causes closure to outline the call above.
+
+
+  response._fromJSON = createFromJSONCallback(response);
+  return response;
+}
+
+function startReadingFromStream(response, stream) {
+  var reader = stream.getReader();
+
+  function progress(_ref) {
+    var done = _ref.done,
+        value = _ref.value;
+
+    if (done) {
+      close(response);
+      return;
+    }
+
+    var buffer = value;
+    processBinaryChunk(response, buffer);
+    return reader.read().then(progress, error);
+  }
+
+  function error(e) {
+    reportGlobalError(response, e);
+  }
+
+  reader.read().then(progress, error);
+}
+
+function createFromReadableStream(stream, options) {
+  var response = createResponse$1(options && options.moduleMap ? options.moduleMap : null);
+  startReadingFromStream(response, stream);
+  return response;
+}
+
+function createFromFetch(promiseForResponse, options) {
+  var response = createResponse$1(options && options.moduleMap ? options.moduleMap : null);
+  promiseForResponse.then(function (r) {
+    startReadingFromStream(response, r.body);
+  }, function (e) {
+    reportGlobalError(response, e);
+  });
+  return response;
+}
+
+function createFromXHR(request, options) {
+  var response = createResponse$1(options && options.moduleMap ? options.moduleMap : null);
+  var processedLength = 0;
+
+  function progress(e) {
+    var chunk = request.responseText;
+    processStringChunk(response, chunk, processedLength);
+    processedLength = chunk.length;
+  }
+
+  function load(e) {
+    progress();
+    close(response);
+  }
+
+  function error(e) {
+    reportGlobalError(response, new TypeError('Network error'));
+  }
+
+  request.addEventListener('progress', progress);
+  request.addEventListener('load', load);
+  request.addEventListener('error', error);
+  request.addEventListener('abort', error);
+  request.addEventListener('timeout', error);
+  return response;
+}
+
+exports.createFromFetch = createFromFetch;
+exports.createFromReadableStream = createFromReadableStream;
+exports.createFromXHR = createFromXHR;
+  })();
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/react-server-dom-webpack/index.js":
+/*!********************************************************!*\
+  !*** ./node_modules/react-server-dom-webpack/index.js ***!
+  \********************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+
+
+if (false) {} else {
+  module.exports = __webpack_require__(/*! ./cjs/react-server-dom-webpack.development.js */ "./node_modules/react-server-dom-webpack/cjs/react-server-dom-webpack.development.js");
+}
+
+
+/***/ }),
+
 /***/ "./node_modules/split-on-first/index.js":
 /*!**********************************************!*\
   !*** ./node_modules/split-on-first/index.js ***!
@@ -2785,6 +4303,52 @@ module.exports = _setPrototypeOf, module.exports.__esModule = true, module.expor
 
 /***/ }),
 
+/***/ "./node_modules/gatsby-core-utils/dist/create-content-digest.mjs":
+/*!***********************************************************************!*\
+  !*** ./node_modules/gatsby-core-utils/dist/create-content-digest.mjs ***!
+  \***********************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "createContentDigest": () => (/* binding */ createContentDigest)
+/* harmony export */ });
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! crypto */ "crypto");
+/* harmony import */ var node_object_hash__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! node-object-hash */ "./node_modules/node-object-hash/dist/hasher.js");
+
+
+const hasher = node_object_hash__WEBPACK_IMPORTED_MODULE_1__({
+  coerce: false,
+  alg: `md5`,
+  enc: `hex`,
+  sort: {
+    map: true,
+    object: true,
+    array: false,
+    set: false
+  }
+});
+
+const hashPrimitive = input => crypto__WEBPACK_IMPORTED_MODULE_0__.createHash(`md5`).update(input).digest(`hex`);
+/**
+ * Hashes an input using md5 hash of hexadecimal digest.
+ *
+ * @param input The input to encrypt
+ * @return The content digest
+ */
+
+
+const createContentDigest = input => {
+  if (typeof input === `object` && !Buffer.isBuffer(input)) {
+    return hasher.hash(input);
+  }
+
+  return hashPrimitive(input);
+};
+
+/***/ }),
+
 /***/ "./node_modules/gatsby-link/dist/index.modern.mjs":
 /*!********************************************************!*\
   !*** ./node_modules/gatsby-link/dist/index.modern.mjs ***!
@@ -2794,18 +4358,18 @@ module.exports = _setPrototypeOf, module.exports.__esModule = true, module.expor
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ w),
-/* harmony export */   "navigate": () => (/* binding */ P),
+/* harmony export */   "Link": () => (/* binding */ P),
+/* harmony export */   "navigate": () => (/* binding */ E),
 /* harmony export */   "parsePath": () => (/* binding */ a),
-/* harmony export */   "withAssetPrefix": () => (/* binding */ m),
+/* harmony export */   "withAssetPrefix": () => (/* binding */ y),
 /* harmony export */   "withPrefix": () => (/* binding */ h)
 /* harmony export */ });
 /* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! prop-types */ "./node_modules/prop-types/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
-/* harmony import */ var _gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/es/index.js");
+/* harmony import */ var _gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/dist/index.modern.mjs");
 /* harmony import */ var gatsby_page_utils_apply_trailing_slash_option__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! gatsby-page-utils/apply-trailing-slash-option */ "./node_modules/gatsby-page-utils/dist/apply-trailing-slash-option.js");
-"client export"
-;function i(){return i=Object.assign?Object.assign.bind():function(t){for(var e=1;e<arguments.length;e++){var n=arguments[e];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(t[r]=n[r])}return t},i.apply(this,arguments)}function a(t){let e=t||"/",n="",r="";const o=e.indexOf("#");-1!==o&&(r=e.slice(o),e=e.slice(0,o));const s=e.indexOf("?");return-1!==s&&(n=e.slice(s),e=e.slice(0,s)),{pathname:e,search:"?"===n?"":n,hash:"#"===r?"":r}}const c=/^[a-zA-Z][a-zA-Z\d+\-.]*?:/,l=t=>{if("string"==typeof t)return!(t=>c.test(t))(t)},p=()=> true? true?"":0:0;function h(t,e=(()=> true? true?"":0:0)()){var n;if(!l(t))return t;if(t.startsWith("./")||t.startsWith("../"))return t;const r=null!=(n=null!=e?e:p())?n:"/";return`${null!=r&&r.endsWith("/")?r.slice(0,-1):r}${t.startsWith("/")?t:`/${t}`}`}const f=t=>null==t?void 0:t.startsWith("/"),u=()=> true?"legacy":0,_=(t,e)=>"number"==typeof t?t:l(t)?f(t)?function(t){const e=h(t),n=u();if("always"===n||"never"===n){const{pathname:t,search:r,hash:o}=a(e);return`${(0,gatsby_page_utils_apply_trailing_slash_option__WEBPACK_IMPORTED_MODULE_2__.applyTrailingSlashOption)(t,n)}${r}${o}`}return e}(t):function(t,e){if(f(t))return t;const r=u(),o=(0,_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.resolve)(t,e);return"always"===r||"never"===r?(0,gatsby_page_utils_apply_trailing_slash_option__WEBPACK_IMPORTED_MODULE_2__.applyTrailingSlashOption)(o,r):o}(t,e):t,d=["to","getProps","onClick","onMouseEnter","activeClassName","activeStyle","innerRef","partiallyActive","state","replace","_location"];function m(t){return h(t,p())}const y={activeClassName:prop_types__WEBPACK_IMPORTED_MODULE_3__.string,activeStyle:prop_types__WEBPACK_IMPORTED_MODULE_3__.object,partiallyActive:prop_types__WEBPACK_IMPORTED_MODULE_3__.bool};function v(t){/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.Location,null,({location:n})=>/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(b,i({},t,{_location:n})))}class b extends react__WEBPACK_IMPORTED_MODULE_0__.Component{constructor(t){super(t),this.defaultGetProps=({isPartiallyCurrent:t,isCurrent:e})=>(this.props.partiallyActive?t:e)?{className:[this.props.className,this.props.activeClassName].filter(Boolean).join(" "),style:i({},this.props.style,this.props.activeStyle)}:null;let e=!1;"undefined"!=typeof window&&window.IntersectionObserver&&(e=!0),this.state={IOSupported:e},this.abortPrefetch=null,this.handleRef=this.handleRef.bind(this)}_prefetch(){let t=window.location.pathname+window.location.search;this.props._location&&this.props._location.pathname&&(t=this.props._location.pathname+this.props._location.search);const e=a(_(this.props.to,t)),n=e.pathname+e.search;if(t!==n)return ___loader.enqueue(n)}componentWillUnmount(){if(!this.io)return;const{instance:t,el:e}=this.io;this.abortPrefetch&&this.abortPrefetch.abort(),t.unobserve(e),t.disconnect()}handleRef(t){this.props.innerRef&&Object.prototype.hasOwnProperty.call(this.props.innerRef,"current")?this.props.innerRef.current=t:this.props.innerRef&&this.props.innerRef(t),this.state.IOSupported&&t&&(this.io=((t,e)=>{const n=new window.IntersectionObserver(n=>{n.forEach(n=>{t===n.target&&e(n.isIntersecting||n.intersectionRatio>0)})});return n.observe(t),{instance:n,el:t}})(t,t=>{t?this.abortPrefetch=this._prefetch():this.abortPrefetch&&this.abortPrefetch.abort()}))}render(){const t=this.props,{to:n,getProps:r=this.defaultGetProps,onClick:s,onMouseEnter:c,state:p,replace:h,_location:f}=t,u=function(t,e){if(null==t)return{};var n,r,o={},s=Object.keys(t);for(r=0;r<s.length;r++)e.indexOf(n=s[r])>=0||(o[n]=t[n]);return o}(t,d); false||l(n)||console.warn(`External link ${n} was detected in a Link component. Use the Link component only for internal links. See: https://gatsby.dev/internal-links`);const m=_(n,f.pathname);return l(m)?/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.Link,i({to:m,state:p,getProps:r,innerRef:this.handleRef,onMouseEnter:t=>{c&&c(t);const e=a(m);___loader.hovering(e.pathname+e.search)},onClick:t=>{if(s&&s(t),!(0!==t.button||this.props.target||t.defaultPrevented||t.metaKey||t.altKey||t.ctrlKey||t.shiftKey)){t.preventDefault();let e=h;const n=encodeURI(m)===f.pathname;"boolean"!=typeof h&&n&&(e=!0),window.___navigate(m,{state:p,replace:e})}return!0}},u)):/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("a",i({href:m},u))}}b.propTypes=i({},y,{onClick:prop_types__WEBPACK_IMPORTED_MODULE_3__.func,to:prop_types__WEBPACK_IMPORTED_MODULE_3__.string.isRequired,replace:prop_types__WEBPACK_IMPORTED_MODULE_3__.bool,state:prop_types__WEBPACK_IMPORTED_MODULE_3__.object});var w=react__WEBPACK_IMPORTED_MODULE_0__.forwardRef((t,n)=>/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(v,i({innerRef:n},t)));const P=(t,e)=>{window.___navigate(_(t,window.location.pathname),e)};
+"use client"
+;function i(){return i=Object.assign?Object.assign.bind():function(t){for(var e=1;e<arguments.length;e++){var n=arguments[e];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(t[r]=n[r])}return t},i.apply(this,arguments)}function a(t){let e=t||"/",n="",r="";const o=e.indexOf("#");-1!==o&&(r=e.slice(o),e=e.slice(0,o));const s=e.indexOf("?");return-1!==s&&(n=e.slice(s),e=e.slice(0,s)),{pathname:e,search:"?"===n?"":n,hash:"#"===r?"":r}}const c=/^[a-zA-Z][a-zA-Z\d+\-.]*?:/,l=t=>{if("string"==typeof t)return!(t=>c.test(t))(t)},p=()=> true? true?"":0:0;function h(t,e=(()=> true? true?"":0:0)()){var n;if(!l(t))return t;if(t.startsWith("./")||t.startsWith("../"))return t;const r=null!=(n=null!=e?e:p())?n:"/";return`${null!=r&&r.endsWith("/")?r.slice(0,-1):r}${t.startsWith("/")?t:`/${t}`}`}const f=t=>null==t?void 0:t.startsWith("/"),u=()=> true?"always":0;function _(t,e){const{pathname:n,search:r,hash:o}=a(t);return`${(0,gatsby_page_utils_apply_trailing_slash_option__WEBPACK_IMPORTED_MODULE_2__.applyTrailingSlashOption)(n,e)}${r}${o}`}const d=(t,e)=>"number"==typeof t?t:l(t)?f(t)?function(t){const e=h(t),n=u();return"always"===n||"never"===n?_(e,n):e}(t):function(t,e){if(f(t))return t;const r=u(),o=(0,_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.resolve)(t,e);return"always"===r||"never"===r?_(o,r):o}(t,e):t,m=["to","getProps","onClick","onMouseEnter","activeClassName","activeStyle","innerRef","partiallyActive","state","replace","_location"];function y(t){return h(t,p())}const v={activeClassName:prop_types__WEBPACK_IMPORTED_MODULE_3__.string,activeStyle:prop_types__WEBPACK_IMPORTED_MODULE_3__.object,partiallyActive:prop_types__WEBPACK_IMPORTED_MODULE_3__.bool};function b(t){/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.Location,null,({location:n})=>/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(w,i({},t,{_location:n})))}class w extends react__WEBPACK_IMPORTED_MODULE_0__.Component{constructor(t){super(t),this.defaultGetProps=({isPartiallyCurrent:t,isCurrent:e})=>(this.props.partiallyActive?t:e)?{className:[this.props.className,this.props.activeClassName].filter(Boolean).join(" "),style:i({},this.props.style,this.props.activeStyle)}:null;let e=!1;"undefined"!=typeof window&&window.IntersectionObserver&&(e=!0),this.state={IOSupported:e},this.abortPrefetch=null,this.handleRef=this.handleRef.bind(this)}_prefetch(){let t=window.location.pathname+window.location.search;this.props._location&&this.props._location.pathname&&(t=this.props._location.pathname+this.props._location.search);const e=a(d(this.props.to,t)),n=e.pathname+e.search;if(t!==n)return ___loader.enqueue(n)}componentWillUnmount(){if(!this.io)return;const{instance:t,el:e}=this.io;this.abortPrefetch&&this.abortPrefetch.abort(),t.unobserve(e),t.disconnect()}handleRef(t){this.props.innerRef&&Object.prototype.hasOwnProperty.call(this.props.innerRef,"current")?this.props.innerRef.current=t:this.props.innerRef&&this.props.innerRef(t),this.state.IOSupported&&t&&(this.io=((t,e)=>{const n=new window.IntersectionObserver(n=>{n.forEach(n=>{t===n.target&&e(n.isIntersecting||n.intersectionRatio>0)})});return n.observe(t),{instance:n,el:t}})(t,t=>{t?this.abortPrefetch=this._prefetch():this.abortPrefetch&&this.abortPrefetch.abort()}))}render(){const t=this.props,{to:n,getProps:r=this.defaultGetProps,onClick:s,onMouseEnter:c,state:p,replace:h,_location:f}=t,u=function(t,e){if(null==t)return{};var n,r,o={},s=Object.keys(t);for(r=0;r<s.length;r++)e.indexOf(n=s[r])>=0||(o[n]=t[n]);return o}(t,m); false||l(n)||console.warn(`External link ${n} was detected in a Link component. Use the Link component only for internal links. See: https://gatsby.dev/internal-links`);const _=d(n,f.pathname);return l(_)?/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.Link,i({to:_,state:p,getProps:r,innerRef:this.handleRef,onMouseEnter:t=>{c&&c(t);const e=a(_);___loader.hovering(e.pathname+e.search)},onClick:t=>{if(s&&s(t),!(0!==t.button||this.props.target||t.defaultPrevented||t.metaKey||t.altKey||t.ctrlKey||t.shiftKey)){t.preventDefault();let e=h;const n=encodeURI(_)===f.pathname;"boolean"!=typeof h&&n&&(e=!0),window.___navigate(_,{state:p,replace:e})}return!0}},u)):/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("a",i({href:_},u))}}w.propTypes=i({},v,{onClick:prop_types__WEBPACK_IMPORTED_MODULE_3__.func,to:prop_types__WEBPACK_IMPORTED_MODULE_3__.string.isRequired,replace:prop_types__WEBPACK_IMPORTED_MODULE_3__.bool,state:prop_types__WEBPACK_IMPORTED_MODULE_3__.object});const P=react__WEBPACK_IMPORTED_MODULE_0__.forwardRef((t,n)=>/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(b,i({innerRef:n},t))),E=(t,e)=>{window.___navigate(d(t,window.location.pathname),e)};
 //# sourceMappingURL=index.modern.mjs.map
 
 

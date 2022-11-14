@@ -1,511 +1,6 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./node_modules/@gatsbyjs/reach-router/es/lib/history.js":
-/*!***************************************************************!*\
-  !*** ./node_modules/@gatsbyjs/reach-router/es/lib/history.js ***!
-  \***************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "createHistory": () => (/* binding */ createHistory),
-/* harmony export */   "createMemorySource": () => (/* binding */ createMemorySource),
-/* harmony export */   "globalHistory": () => (/* binding */ globalHistory),
-/* harmony export */   "navigate": () => (/* binding */ navigate)
-/* harmony export */ });
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-var getLocation = function getLocation(source) {
-  var _source$location = source.location,
-      search = _source$location.search,
-      hash = _source$location.hash,
-      href = _source$location.href,
-      origin = _source$location.origin,
-      protocol = _source$location.protocol,
-      host = _source$location.host,
-      hostname = _source$location.hostname,
-      port = _source$location.port;
-  var pathname = source.location.pathname;
-
-
-  if (!pathname && href && canUseDOM) {
-    var url = new URL(href);
-    pathname = url.pathname;
-  }
-
-  return {
-    pathname: encodeURI(decodeURI(pathname)),
-    search: search,
-    hash: hash,
-    href: href,
-    origin: origin,
-    protocol: protocol,
-    host: host,
-    hostname: hostname,
-    port: port,
-    state: source.history.state,
-    key: source.history.state && source.history.state.key || "initial"
-  };
-};
-
-var createHistory = function createHistory(source, options) {
-  var listeners = [];
-  var location = getLocation(source);
-  var transitioning = false;
-  var resolveTransition = function resolveTransition() {};
-
-  return {
-    get location() {
-      return location;
-    },
-
-    get transitioning() {
-      return transitioning;
-    },
-
-    _onTransitionComplete: function _onTransitionComplete() {
-      transitioning = false;
-      resolveTransition();
-    },
-    listen: function listen(listener) {
-      listeners.push(listener);
-
-      var popstateListener = function popstateListener() {
-        location = getLocation(source);
-        listener({ location: location, action: "POP" });
-      };
-
-      source.addEventListener("popstate", popstateListener);
-
-      return function () {
-        source.removeEventListener("popstate", popstateListener);
-        listeners = listeners.filter(function (fn) {
-          return fn !== listener;
-        });
-      };
-    },
-    navigate: function navigate(to) {
-      var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
-          state = _ref.state,
-          _ref$replace = _ref.replace,
-          replace = _ref$replace === undefined ? false : _ref$replace;
-
-      if (typeof to === "number") {
-        source.history.go(to);
-      } else {
-        state = _extends({}, state, { key: Date.now() + "" });
-        // try...catch iOS Safari limits to 100 pushState calls
-        try {
-          if (transitioning || replace) {
-            source.history.replaceState(state, null, to);
-          } else {
-            source.history.pushState(state, null, to);
-          }
-        } catch (e) {
-          source.location[replace ? "replace" : "assign"](to);
-        }
-      }
-
-      location = getLocation(source);
-      transitioning = true;
-      var transition = new Promise(function (res) {
-        return resolveTransition = res;
-      });
-      listeners.forEach(function (listener) {
-        return listener({ location: location, action: "PUSH" });
-      });
-      return transition;
-    }
-  };
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Stores history entries in memory for testing or other platforms like Native
-var createMemorySource = function createMemorySource() {
-  var initialPath = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "/";
-
-  var searchIndex = initialPath.indexOf("?");
-  var initialLocation = {
-    pathname: searchIndex > -1 ? initialPath.substr(0, searchIndex) : initialPath,
-    search: searchIndex > -1 ? initialPath.substr(searchIndex) : ""
-  };
-  var index = 0;
-  var stack = [initialLocation];
-  var states = [null];
-
-  return {
-    get location() {
-      return stack[index];
-    },
-    addEventListener: function addEventListener(name, fn) {},
-    removeEventListener: function removeEventListener(name, fn) {},
-
-    history: {
-      get entries() {
-        return stack;
-      },
-      get index() {
-        return index;
-      },
-      get state() {
-        return states[index];
-      },
-      pushState: function pushState(state, _, uri) {
-        var _uri$split = uri.split("?"),
-            pathname = _uri$split[0],
-            _uri$split$ = _uri$split[1],
-            search = _uri$split$ === undefined ? "" : _uri$split$;
-
-        index++;
-        stack.push({ pathname: pathname, search: search.length ? "?" + search : search });
-        states.push(state);
-      },
-      replaceState: function replaceState(state, _, uri) {
-        var _uri$split2 = uri.split("?"),
-            pathname = _uri$split2[0],
-            _uri$split2$ = _uri$split2[1],
-            search = _uri$split2$ === undefined ? "" : _uri$split2$;
-
-        stack[index] = { pathname: pathname, search: search };
-        states[index] = state;
-      },
-      go: function go(to) {
-        var newIndex = index + to;
-
-        if (newIndex < 0 || newIndex > states.length - 1) {
-          return;
-        }
-
-        index = newIndex;
-      }
-    }
-  };
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// global history - uses window.history as the source if available, otherwise a
-// memory history
-var canUseDOM = !!(typeof window !== "undefined" && window.document && window.document.createElement);
-var getSource = function getSource() {
-  return canUseDOM ? window : createMemorySource();
-};
-
-var globalHistory = createHistory(getSource());
-var navigate = globalHistory.navigate;
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-/***/ }),
-
-/***/ "./node_modules/@gatsbyjs/reach-router/es/lib/utils.js":
-/*!*************************************************************!*\
-  !*** ./node_modules/@gatsbyjs/reach-router/es/lib/utils.js ***!
-  \*************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "insertParams": () => (/* binding */ insertParams),
-/* harmony export */   "match": () => (/* binding */ match),
-/* harmony export */   "pick": () => (/* binding */ pick),
-/* harmony export */   "resolve": () => (/* binding */ resolve),
-/* harmony export */   "shallowCompare": () => (/* binding */ shallowCompare),
-/* harmony export */   "startsWith": () => (/* binding */ startsWith),
-/* harmony export */   "validateRedirect": () => (/* binding */ validateRedirect)
-/* harmony export */ });
-/* harmony import */ var invariant__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! invariant */ "./node_modules/invariant/invariant.js");
-/* harmony import */ var invariant__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(invariant__WEBPACK_IMPORTED_MODULE_0__);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// startsWith(string, search) - Check if `string` starts with `search`
-var startsWith = function startsWith(string, search) {
-  return string.substr(0, search.length) === search;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// pick(routes, uri)
-//
-// Ranks and picks the best route to match. Each segment gets the highest
-// amount of points, then the type of segment gets an additional amount of
-// points where
-//
-//     static > dynamic > splat > root
-//
-// This way we don't have to worry about the order of our routes, let the
-// computers do it.
-//
-// A route looks like this
-//
-//     { path, default, value }
-//
-// And a returned match looks like:
-//
-//     { route, params, uri }
-//
-// I know, I should use TypeScript not comments for these types.
-var pick = function pick(routes, uri) {
-  var match = void 0;
-  var default_ = void 0;
-
-  var _uri$split = uri.split("?"),
-      uriPathname = _uri$split[0];
-
-  var uriSegments = segmentize(uriPathname);
-  var isRootUri = uriSegments[0] === "";
-  var ranked = rankRoutes(routes);
-
-  for (var i = 0, l = ranked.length; i < l; i++) {
-    var missed = false;
-    var route = ranked[i].route;
-
-    if (route.default) {
-      default_ = {
-        route: route,
-        params: {},
-        uri: uri
-      };
-      continue;
-    }
-
-    var routeSegments = segmentize(route.path);
-    var params = {};
-    var max = Math.max(uriSegments.length, routeSegments.length);
-    var index = 0;
-
-    for (; index < max; index++) {
-      var routeSegment = routeSegments[index];
-      var uriSegment = uriSegments[index];
-
-      if (isSplat(routeSegment)) {
-        // Hit a splat, just grab the rest, and return a match
-        // uri:   /files/documents/work
-        // route: /files/*
-        var param = routeSegment.slice(1) || "*";
-        params[param] = uriSegments.slice(index).map(decodeURIComponent).join("/");
-        break;
-      }
-
-      if (uriSegment === undefined) {
-        // URI is shorter than the route, no match
-        // uri:   /users
-        // route: /users/:userId
-        missed = true;
-        break;
-      }
-
-      var dynamicMatch = paramRe.exec(routeSegment);
-
-      if (dynamicMatch && !isRootUri) {
-        var matchIsNotReserved = reservedNames.indexOf(dynamicMatch[1]) === -1;
-        !matchIsNotReserved ?  true ? invariant__WEBPACK_IMPORTED_MODULE_0___default()(false, "<Router> dynamic segment \"" + dynamicMatch[1] + "\" is a reserved name. Please use a different name in path \"" + route.path + "\".") : 0 : void 0;
-        var value = decodeURIComponent(uriSegment);
-        params[dynamicMatch[1]] = value;
-      } else if (routeSegment !== uriSegment) {
-        // Current segments don't match, not dynamic, not splat, so no match
-        // uri:   /users/123/settings
-        // route: /users/:id/profile
-        missed = true;
-        break;
-      }
-    }
-
-    if (!missed) {
-      match = {
-        route: route,
-        params: params,
-        uri: "/" + uriSegments.slice(0, index).join("/")
-      };
-      break;
-    }
-  }
-
-  return match || default_ || null;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// match(path, uri) - Matches just one path to a uri, also lol
-var match = function match(path, uri) {
-  return pick([{ path: path }], uri);
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// resolve(to, basepath)
-//
-// Resolves URIs as though every path is a directory, no files.  Relative URIs
-// in the browser can feel awkward because not only can you be "in a directory"
-// you can be "at a file", too. For example
-//
-//     browserSpecResolve('foo', '/bar/') => /bar/foo
-//     browserSpecResolve('foo', '/bar') => /foo
-//
-// But on the command line of a file system, it's not as complicated, you can't
-// `cd` from a file, only directories.  This way, links have to know less about
-// their current path. To go deeper you can do this:
-//
-//     <Link to="deeper"/>
-//     // instead of
-//     <Link to=`{${props.uri}/deeper}`/>
-//
-// Just like `cd`, if you want to go deeper from the command line, you do this:
-//
-//     cd deeper
-//     # not
-//     cd $(pwd)/deeper
-//
-// By treating every path as a directory, linking to relative paths should
-// require less contextual information and (fingers crossed) be more intuitive.
-var resolve = function resolve(to, base) {
-  // /foo/bar, /baz/qux => /foo/bar
-  if (startsWith(to, "/")) {
-    return to;
-  }
-
-  var _to$split = to.split("?"),
-      toPathname = _to$split[0],
-      toQuery = _to$split[1];
-
-  var _base$split = base.split("?"),
-      basePathname = _base$split[0];
-
-  var toSegments = segmentize(toPathname);
-  var baseSegments = segmentize(basePathname);
-
-  // ?a=b, /users?b=c => /users?a=b
-  if (toSegments[0] === "") {
-    return addQuery(basePathname, toQuery);
-  }
-
-  // profile, /users/789 => /users/789/profile
-  if (!startsWith(toSegments[0], ".")) {
-    var pathname = baseSegments.concat(toSegments).join("/");
-    return addQuery((basePathname === "/" ? "" : "/") + pathname, toQuery);
-  }
-
-  // ./         /users/123  =>  /users/123
-  // ../        /users/123  =>  /users
-  // ../..      /users/123  =>  /
-  // ../../one  /a/b/c/d    =>  /a/b/one
-  // .././one   /a/b/c/d    =>  /a/b/c/one
-  var allSegments = baseSegments.concat(toSegments);
-  var segments = [];
-  for (var i = 0, l = allSegments.length; i < l; i++) {
-    var segment = allSegments[i];
-    if (segment === "..") segments.pop();else if (segment !== ".") segments.push(segment);
-  }
-
-  return addQuery("/" + segments.join("/"), toQuery);
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// insertParams(path, params)
-
-var insertParams = function insertParams(path, params) {
-  var _path$split = path.split("?"),
-      pathBase = _path$split[0],
-      _path$split$ = _path$split[1],
-      query = _path$split$ === undefined ? "" : _path$split$;
-
-  var segments = segmentize(pathBase);
-  var constructedPath = "/" + segments.map(function (segment) {
-    var match = paramRe.exec(segment);
-    return match ? params[match[1]] : segment;
-  }).join("/");
-  var _params$location = params.location;
-  _params$location = _params$location === undefined ? {} : _params$location;
-  var _params$location$sear = _params$location.search,
-      search = _params$location$sear === undefined ? "" : _params$location$sear;
-
-  var searchSplit = search.split("?")[1] || "";
-  constructedPath = addQuery(constructedPath, query, searchSplit);
-  return constructedPath;
-};
-
-var validateRedirect = function validateRedirect(from, to) {
-  var filter = function filter(segment) {
-    return isDynamic(segment);
-  };
-  var fromString = segmentize(from).filter(filter).sort().join("/");
-  var toString = segmentize(to).filter(filter).sort().join("/");
-  return fromString === toString;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Junk
-var paramRe = /^:(.+)/;
-
-var SEGMENT_POINTS = 4;
-var STATIC_POINTS = 3;
-var DYNAMIC_POINTS = 2;
-var SPLAT_PENALTY = 1;
-var ROOT_POINTS = 1;
-
-var isRootSegment = function isRootSegment(segment) {
-  return segment === "";
-};
-var isDynamic = function isDynamic(segment) {
-  return paramRe.test(segment);
-};
-var isSplat = function isSplat(segment) {
-  return segment && segment[0] === "*";
-};
-
-var rankRoute = function rankRoute(route, index) {
-  var score = route.default ? 0 : segmentize(route.path).reduce(function (score, segment) {
-    score += SEGMENT_POINTS;
-    if (isRootSegment(segment)) score += ROOT_POINTS;else if (isDynamic(segment)) score += DYNAMIC_POINTS;else if (isSplat(segment)) score -= SEGMENT_POINTS + SPLAT_PENALTY;else score += STATIC_POINTS;
-    return score;
-  }, 0);
-  return { route: route, score: score, index: index };
-};
-
-var rankRoutes = function rankRoutes(routes) {
-  return routes.map(rankRoute).sort(function (a, b) {
-    return a.score < b.score ? 1 : a.score > b.score ? -1 : a.index - b.index;
-  });
-};
-
-var segmentize = function segmentize(uri) {
-  return uri
-  // strip starting/ending slashes
-  .replace(/(^\/+|\/+$)/g, "").split("/");
-};
-
-var addQuery = function addQuery(pathname) {
-  for (var _len = arguments.length, query = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-    query[_key - 1] = arguments[_key];
-  }
-
-  query = query.filter(function (q) {
-    return q && q.length > 0;
-  });
-  return pathname + (query && query.length > 0 ? "?" + query.join("&") : "");
-};
-
-var reservedNames = ["uri", "path"];
-
-/**
- * Shallow compares two objects.
- * @param {Object} obj1 The first object to compare.
- * @param {Object} obj2 The second object to compare.
- */
-var shallowCompare = function shallowCompare(obj1, obj2) {
-  var obj1Keys = Object.keys(obj1);
-  return obj1Keys.length === Object.keys(obj2).length && obj1Keys.every(function (key) {
-    return obj2.hasOwnProperty(key) && obj1[key] === obj2[key];
-  });
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-/***/ }),
-
 /***/ "./node_modules/gatsby/dist/internal-plugins/bundle-optimisations/polyfills/object-assign.js":
 /*!***************************************************************************************************!*\
   !*** ./node_modules/gatsby/dist/internal-plugins/bundle-optimisations/polyfills/object-assign.js ***!
@@ -975,778 +470,6 @@ HTML.propTypes = {
   body: (prop_types__WEBPACK_IMPORTED_MODULE_1___default().string),
   postBodyComponents: (prop_types__WEBPACK_IMPORTED_MODULE_1___default().array)
 };
-
-/***/ }),
-
-/***/ "./.cache/react-lifecycles-compat.js":
-/*!*******************************************!*\
-  !*** ./.cache/react-lifecycles-compat.js ***!
-  \*******************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-exports.polyfill = Component => Component;
-
-/***/ }),
-
-/***/ "./node_modules/@gatsbyjs/reach-router/es/index.js":
-/*!*********************************************************!*\
-  !*** ./node_modules/@gatsbyjs/reach-router/es/index.js ***!
-  \*********************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "BaseContext": () => (/* binding */ BaseContext),
-/* harmony export */   "Link": () => (/* binding */ Link),
-/* harmony export */   "Location": () => (/* binding */ Location),
-/* harmony export */   "LocationProvider": () => (/* binding */ LocationProvider),
-/* harmony export */   "Match": () => (/* binding */ Match),
-/* harmony export */   "Redirect": () => (/* binding */ Redirect),
-/* harmony export */   "Router": () => (/* binding */ Router),
-/* harmony export */   "ServerLocation": () => (/* binding */ ServerLocation),
-/* harmony export */   "createHistory": () => (/* reexport safe */ _lib_history__WEBPACK_IMPORTED_MODULE_4__.createHistory),
-/* harmony export */   "createMemorySource": () => (/* reexport safe */ _lib_history__WEBPACK_IMPORTED_MODULE_4__.createMemorySource),
-/* harmony export */   "globalHistory": () => (/* reexport safe */ _lib_history__WEBPACK_IMPORTED_MODULE_4__.globalHistory),
-/* harmony export */   "isRedirect": () => (/* binding */ isRedirect),
-/* harmony export */   "matchPath": () => (/* reexport safe */ _lib_utils__WEBPACK_IMPORTED_MODULE_3__.match),
-/* harmony export */   "navigate": () => (/* reexport safe */ _lib_history__WEBPACK_IMPORTED_MODULE_4__.navigate),
-/* harmony export */   "redirectTo": () => (/* binding */ redirectTo),
-/* harmony export */   "resolve": () => (/* reexport safe */ _lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve),
-/* harmony export */   "useLocation": () => (/* binding */ useLocation),
-/* harmony export */   "useMatch": () => (/* binding */ useMatch),
-/* harmony export */   "useNavigate": () => (/* binding */ useNavigate),
-/* harmony export */   "useParams": () => (/* binding */ useParams)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! prop-types */ "./node_modules/prop-types/index.js");
-/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(prop_types__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var invariant__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! invariant */ "./node_modules/invariant/invariant.js");
-/* harmony import */ var invariant__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(invariant__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var react_lifecycles_compat__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react-lifecycles-compat */ "./.cache/react-lifecycles-compat.js");
-/* harmony import */ var _lib_utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./lib/utils */ "./node_modules/@gatsbyjs/reach-router/es/lib/utils.js");
-/* harmony import */ var _lib_history__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./lib/history */ "./node_modules/@gatsbyjs/reach-router/es/lib/history.js");
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-/* eslint-disable jsx-a11y/anchor-has-content */
-
-
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-var createNamedContext = function createNamedContext(name, defaultValue) {
-  var Ctx = (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)(defaultValue);
-  Ctx.displayName = name;
-  return Ctx;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Location Context/Provider
-var LocationContext = createNamedContext("Location");
-
-// sets up a listener if there isn't one already so apps don't need to be
-// wrapped in some top level provider
-var Location = function Location(_ref) {
-  var children = _ref.children;
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    LocationContext.Consumer,
-    null,
-    function (context) {
-      return context ? children(context) : react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        LocationProvider,
-        null,
-        children
-      );
-    }
-  );
-};
-
-var LocationProvider = function (_React$Component) {
-  _inherits(LocationProvider, _React$Component);
-
-  function LocationProvider() {
-    var _temp, _this, _ret;
-
-    _classCallCheck(this, LocationProvider);
-
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return _ret = (_temp = (_this = _possibleConstructorReturn(this, _React$Component.call.apply(_React$Component, [this].concat(args))), _this), _this.state = {
-      context: _this.getContext(),
-      refs: { unlisten: null }
-    }, _temp), _possibleConstructorReturn(_this, _ret);
-  }
-
-  LocationProvider.prototype.getContext = function getContext() {
-    var _props$history = this.props.history,
-        navigate = _props$history.navigate,
-        location = _props$history.location;
-
-    return { navigate: navigate, location: location };
-  };
-
-  LocationProvider.prototype.componentDidCatch = function componentDidCatch(error, info) {
-    if (isRedirect(error)) {
-      var _navigate = this.props.history.navigate;
-
-      _navigate(error.uri, { replace: true });
-    } else {
-      throw error;
-    }
-  };
-
-  LocationProvider.prototype.componentDidUpdate = function componentDidUpdate(prevProps, prevState) {
-    if (prevState.context.location !== this.state.context.location) {
-      this.props.history._onTransitionComplete();
-    }
-  };
-
-  LocationProvider.prototype.componentDidMount = function componentDidMount() {
-    var _this2 = this;
-
-    var refs = this.state.refs,
-        history = this.props.history;
-
-    history._onTransitionComplete();
-    refs.unlisten = history.listen(function () {
-      Promise.resolve().then(function () {
-        // TODO: replace rAF with react deferred update API when it's ready https://github.com/facebook/react/issues/13306
-        requestAnimationFrame(function () {
-          if (!_this2.unmounted) {
-            _this2.setState(function () {
-              return { context: _this2.getContext() };
-            });
-          }
-        });
-      });
-    });
-  };
-
-  LocationProvider.prototype.componentWillUnmount = function componentWillUnmount() {
-    var refs = this.state.refs;
-
-    this.unmounted = true;
-    refs.unlisten();
-  };
-
-  LocationProvider.prototype.render = function render() {
-    var context = this.state.context,
-        children = this.props.children;
-
-    return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-      LocationContext.Provider,
-      { value: context },
-      typeof children === "function" ? children(context) : children || null
-    );
-  };
-
-  return LocationProvider;
-}((react__WEBPACK_IMPORTED_MODULE_0___default().Component));
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-LocationProvider.defaultProps = {
-  history: _lib_history__WEBPACK_IMPORTED_MODULE_4__.globalHistory
-};
- true ? LocationProvider.propTypes = {
-  history: (prop_types__WEBPACK_IMPORTED_MODULE_5___default().object.isRequired)
-} : 0;
-var ServerLocation = function ServerLocation(_ref2) {
-  var url = _ref2.url,
-      children = _ref2.children;
-
-  var searchIndex = url.indexOf("?");
-  var searchExists = searchIndex > -1;
-  var pathname = void 0;
-  var search = "";
-  var hash = "";
-
-  if (searchExists) {
-    pathname = url.substring(0, searchIndex);
-    search = url.substring(searchIndex);
-  } else {
-    pathname = url;
-  }
-
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    LocationContext.Provider,
-    {
-      value: {
-        location: {
-          pathname: pathname,
-          search: search,
-          hash: hash
-        },
-        navigate: function navigate() {
-          throw new Error("You can't call navigate on the server.");
-        }
-      }
-    },
-    children
-  );
-};
-////////////////////////////////////////////////////////////////////////////////
-// Sets baseuri and basepath for nested routers and links
-var BaseContext = createNamedContext("Base", {
-  baseuri: "/",
-  basepath: "/",
-  navigate: _lib_history__WEBPACK_IMPORTED_MODULE_4__.globalHistory.navigate
-});
-
-////////////////////////////////////////////////////////////////////////////////
-// The main event, welcome to the show everybody.
-var Router = function Router(props) {
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    BaseContext.Consumer,
-    null,
-    function (baseContext) {
-      return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        Location,
-        null,
-        function (locationContext) {
-          return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(RouterImpl, _extends({}, baseContext, locationContext, props));
-        }
-      );
-    }
-  );
-};
-
-var RouterImpl = function (_React$PureComponent) {
-  _inherits(RouterImpl, _React$PureComponent);
-
-  function RouterImpl() {
-    _classCallCheck(this, RouterImpl);
-
-    return _possibleConstructorReturn(this, _React$PureComponent.apply(this, arguments));
-  }
-
-  RouterImpl.prototype.render = function render() {
-    var _props = this.props,
-        location = _props.location,
-        _navigate2 = _props.navigate,
-        basepath = _props.basepath,
-        primary = _props.primary,
-        children = _props.children,
-        baseuri = _props.baseuri,
-        _props$component = _props.component,
-        component = _props$component === undefined ? "div" : _props$component,
-        domProps = _objectWithoutProperties(_props, ["location", "navigate", "basepath", "primary", "children", "baseuri", "component"]);
-
-    var routes = react__WEBPACK_IMPORTED_MODULE_0___default().Children.toArray(children).reduce(function (array, child) {
-      var routes = createRoute(basepath)(child);
-      return array.concat(routes);
-    }, []);
-    var pathname = location.pathname;
-
-
-    var match = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.pick)(routes, pathname);
-
-    if (match) {
-      var params = match.params,
-          uri = match.uri,
-          route = match.route,
-          element = match.route.value;
-
-      // remove the /* from the end for child routes relative paths
-
-      basepath = route.default ? basepath : route.path.replace(/\*$/, "");
-
-      var props = _extends({}, params, {
-        uri: uri,
-        location: location,
-        navigate: function navigate(to, options) {
-          return _navigate2((0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve)(to, uri), options);
-        }
-      });
-
-      var clone = react__WEBPACK_IMPORTED_MODULE_0___default().cloneElement(element, props, element.props.children ? react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        Router,
-        { location: location, primary: primary },
-        element.props.children
-      ) : undefined);
-
-      // using 'div' for < 16.3 support
-      var FocusWrapper = primary ? FocusHandler : component;
-      // don't pass any props to 'div'
-      var wrapperProps = primary ? _extends({ uri: uri, location: location, component: component }, domProps) : domProps;
-
-      return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        BaseContext.Provider,
-        {
-          value: { baseuri: uri, basepath: basepath, navigate: props.navigate }
-        },
-        react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-          FocusWrapper,
-          wrapperProps,
-          clone
-        )
-      );
-    } else {
-      // Not sure if we want this, would require index routes at every level
-      // warning(
-      //   false,
-      //   `<Router basepath="${basepath}">\n\nNothing matched:\n\t${
-      //     location.pathname
-      //   }\n\nPaths checked: \n\t${routes
-      //     .map(route => route.path)
-      //     .join(
-      //       "\n\t"
-      //     )}\n\nTo get rid of this warning, add a default NotFound component as child of Router:
-      //   \n\tlet NotFound = () => <div>Not Found!</div>
-      //   \n\t<Router>\n\t  <NotFound default/>\n\t  {/* ... */}\n\t</Router>`
-      // );
-      return null;
-    }
-  };
-
-  return RouterImpl;
-}((react__WEBPACK_IMPORTED_MODULE_0___default().PureComponent));
-
-RouterImpl.defaultProps = {
-  primary: true
-};
-
-
-var FocusContext = createNamedContext("Focus");
-
-var FocusHandler = function FocusHandler(_ref3) {
-  var uri = _ref3.uri,
-      location = _ref3.location,
-      component = _ref3.component,
-      domProps = _objectWithoutProperties(_ref3, ["uri", "location", "component"]);
-
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    FocusContext.Consumer,
-    null,
-    function (requestFocus) {
-      return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(FocusHandlerImpl, _extends({}, domProps, {
-        component: component,
-        requestFocus: requestFocus,
-        uri: uri,
-        location: location
-      }));
-    }
-  );
-};
-
-// don't focus on initial render
-var initialRender = true;
-var focusHandlerCount = 0;
-
-var FocusHandlerImpl = function (_React$Component2) {
-  _inherits(FocusHandlerImpl, _React$Component2);
-
-  function FocusHandlerImpl() {
-    var _temp2, _this4, _ret2;
-
-    _classCallCheck(this, FocusHandlerImpl);
-
-    for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-      args[_key2] = arguments[_key2];
-    }
-
-    return _ret2 = (_temp2 = (_this4 = _possibleConstructorReturn(this, _React$Component2.call.apply(_React$Component2, [this].concat(args))), _this4), _this4.state = {}, _this4.requestFocus = function (node) {
-      if (!_this4.state.shouldFocus && node) {
-        node.focus();
-      }
-    }, _temp2), _possibleConstructorReturn(_this4, _ret2);
-  }
-
-  FocusHandlerImpl.getDerivedStateFromProps = function getDerivedStateFromProps(nextProps, prevState) {
-    var initial = prevState.uri == null;
-    if (initial) {
-      return _extends({
-        shouldFocus: true
-      }, nextProps);
-    } else {
-      var myURIChanged = nextProps.uri !== prevState.uri;
-      var navigatedUpToMe = prevState.location.pathname !== nextProps.location.pathname && nextProps.location.pathname === nextProps.uri;
-      return _extends({
-        shouldFocus: myURIChanged || navigatedUpToMe
-      }, nextProps);
-    }
-  };
-
-  FocusHandlerImpl.prototype.componentDidMount = function componentDidMount() {
-    focusHandlerCount++;
-    this.focus();
-  };
-
-  FocusHandlerImpl.prototype.componentWillUnmount = function componentWillUnmount() {
-    focusHandlerCount--;
-    if (focusHandlerCount === 0) {
-      initialRender = true;
-    }
-  };
-
-  FocusHandlerImpl.prototype.componentDidUpdate = function componentDidUpdate(prevProps, prevState) {
-    if (prevProps.location !== this.props.location && this.state.shouldFocus) {
-      this.focus();
-    }
-  };
-
-  FocusHandlerImpl.prototype.focus = function focus() {
-    if (false) {}
-
-    var requestFocus = this.props.requestFocus;
-
-
-    if (requestFocus) {
-      requestFocus(this.node);
-    } else {
-      if (initialRender) {
-        initialRender = false;
-      } else if (this.node) {
-        // React polyfills [autofocus] and it fires earlier than cDM,
-        // so we were stealing focus away, this line prevents that.
-        if (!this.node.contains(document.activeElement)) {
-          this.node.focus();
-        }
-      }
-    }
-  };
-
-  FocusHandlerImpl.prototype.render = function render() {
-    var _this5 = this;
-
-    var _props2 = this.props,
-        children = _props2.children,
-        style = _props2.style,
-        requestFocus = _props2.requestFocus,
-        _props2$component = _props2.component,
-        Comp = _props2$component === undefined ? "div" : _props2$component,
-        uri = _props2.uri,
-        location = _props2.location,
-        domProps = _objectWithoutProperties(_props2, ["children", "style", "requestFocus", "component", "uri", "location"]);
-
-    return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-      Comp,
-      _extends({
-        style: _extends({ outline: "none" }, style),
-        tabIndex: "-1",
-        ref: function ref(n) {
-          return _this5.node = n;
-        }
-      }, domProps),
-      react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        FocusContext.Provider,
-        { value: this.requestFocus },
-        this.props.children
-      )
-    );
-  };
-
-  return FocusHandlerImpl;
-}((react__WEBPACK_IMPORTED_MODULE_0___default().Component));
-
-(0,react_lifecycles_compat__WEBPACK_IMPORTED_MODULE_2__.polyfill)(FocusHandlerImpl);
-
-var k = function k() {};
-
-////////////////////////////////////////////////////////////////////////////////
-var forwardRef = (react__WEBPACK_IMPORTED_MODULE_0___default().forwardRef);
-
-if (typeof forwardRef === "undefined") {
-  forwardRef = function forwardRef(C) {
-    return C;
-  };
-}
-
-var Link = forwardRef(function (_ref4, ref) {
-  var innerRef = _ref4.innerRef,
-      props = _objectWithoutProperties(_ref4, ["innerRef"]);
-
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    BaseContext.Consumer,
-    null,
-    function (_ref5) {
-      var basepath = _ref5.basepath,
-          baseuri = _ref5.baseuri;
-      return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        Location,
-        null,
-        function (_ref6) {
-          var location = _ref6.location,
-              navigate = _ref6.navigate;
-
-          var to = props.to,
-              state = props.state,
-              replace = props.replace,
-              _props$getProps = props.getProps,
-              getProps = _props$getProps === undefined ? k : _props$getProps,
-              anchorProps = _objectWithoutProperties(props, ["to", "state", "replace", "getProps"]);
-
-          var href = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve)(to, baseuri);
-          var encodedHref = encodeURI(href);
-          var isCurrent = location.pathname === encodedHref;
-          var isPartiallyCurrent = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.startsWith)(location.pathname, encodedHref);
-
-          return react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", _extends({
-            ref: ref || innerRef,
-            "aria-current": isCurrent ? "page" : undefined
-          }, anchorProps, getProps({ isCurrent: isCurrent, isPartiallyCurrent: isPartiallyCurrent, href: href, location: location }), {
-            href: href,
-            onClick: function onClick(event) {
-              if (anchorProps.onClick) anchorProps.onClick(event);
-              if (shouldNavigate(event)) {
-                event.preventDefault();
-                var shouldReplace = replace;
-                if (typeof replace !== "boolean" && isCurrent) {
-                  var _location$state = _extends({}, location.state),
-                      key = _location$state.key,
-                      restState = _objectWithoutProperties(_location$state, ["key"]);
-
-                  shouldReplace = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.shallowCompare)(_extends({}, state), restState);
-                }
-                navigate(href, {
-                  state: state,
-                  replace: shouldReplace
-                });
-              }
-            }
-          }));
-        }
-      );
-    }
-  );
-});
-
-Link.displayName = "Link";
-
- true ? Link.propTypes = {
-  to: (prop_types__WEBPACK_IMPORTED_MODULE_5___default().string.isRequired)
-} : 0;
-
-////////////////////////////////////////////////////////////////////////////////
-function RedirectRequest(uri) {
-  this.uri = uri;
-}
-
-var isRedirect = function isRedirect(o) {
-  return o instanceof RedirectRequest;
-};
-
-var redirectTo = function redirectTo(to) {
-  throw new RedirectRequest(to);
-};
-
-var RedirectImpl = function (_React$Component3) {
-  _inherits(RedirectImpl, _React$Component3);
-
-  function RedirectImpl() {
-    _classCallCheck(this, RedirectImpl);
-
-    return _possibleConstructorReturn(this, _React$Component3.apply(this, arguments));
-  }
-
-  // Support React < 16 with this hook
-  RedirectImpl.prototype.componentDidMount = function componentDidMount() {
-    var _props3 = this.props,
-        navigate = _props3.navigate,
-        to = _props3.to,
-        from = _props3.from,
-        _props3$replace = _props3.replace,
-        replace = _props3$replace === undefined ? true : _props3$replace,
-        state = _props3.state,
-        noThrow = _props3.noThrow,
-        baseuri = _props3.baseuri,
-        props = _objectWithoutProperties(_props3, ["navigate", "to", "from", "replace", "state", "noThrow", "baseuri"]);
-
-    Promise.resolve().then(function () {
-      var resolvedTo = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve)(to, baseuri);
-      navigate((0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.insertParams)(resolvedTo, props), { replace: replace, state: state });
-    });
-  };
-
-  RedirectImpl.prototype.render = function render() {
-    var _props4 = this.props,
-        navigate = _props4.navigate,
-        to = _props4.to,
-        from = _props4.from,
-        replace = _props4.replace,
-        state = _props4.state,
-        noThrow = _props4.noThrow,
-        baseuri = _props4.baseuri,
-        props = _objectWithoutProperties(_props4, ["navigate", "to", "from", "replace", "state", "noThrow", "baseuri"]);
-
-    var resolvedTo = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve)(to, baseuri);
-    if (!noThrow) redirectTo((0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.insertParams)(resolvedTo, props));
-    return null;
-  };
-
-  return RedirectImpl;
-}((react__WEBPACK_IMPORTED_MODULE_0___default().Component));
-
-var Redirect = function Redirect(props) {
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    BaseContext.Consumer,
-    null,
-    function (_ref7) {
-      var baseuri = _ref7.baseuri;
-      return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        Location,
-        null,
-        function (locationContext) {
-          return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(RedirectImpl, _extends({}, locationContext, { baseuri: baseuri }, props));
-        }
-      );
-    }
-  );
-};
-
- true ? Redirect.propTypes = {
-  from: (prop_types__WEBPACK_IMPORTED_MODULE_5___default().string),
-  to: (prop_types__WEBPACK_IMPORTED_MODULE_5___default().string.isRequired)
-} : 0;
-
-////////////////////////////////////////////////////////////////////////////////
-var Match = function Match(_ref8) {
-  var path = _ref8.path,
-      children = _ref8.children;
-  return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-    BaseContext.Consumer,
-    null,
-    function (_ref9) {
-      var baseuri = _ref9.baseuri;
-      return react__WEBPACK_IMPORTED_MODULE_0___default().createElement(
-        Location,
-        null,
-        function (_ref10) {
-          var navigate = _ref10.navigate,
-              location = _ref10.location;
-
-          var resolvedPath = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve)(path, baseuri);
-          var result = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.match)(resolvedPath, location.pathname);
-          return children({
-            navigate: navigate,
-            location: location,
-            match: result ? _extends({}, result.params, {
-              uri: result.uri,
-              path: path
-            }) : null
-          });
-        }
-      );
-    }
-  );
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Hooks
-
-var useLocation = function useLocation() {
-  var context = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(LocationContext);
-
-  if (!context) {
-    throw new Error("useLocation hook was used but a LocationContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");
-  }
-
-  return context.location;
-};
-
-var useNavigate = function useNavigate() {
-  var context = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(BaseContext);
-
-  if (!context) {
-    throw new Error("useNavigate hook was used but a BaseContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");
-  }
-
-  return context.navigate;
-};
-
-var useParams = function useParams() {
-  var context = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(BaseContext);
-
-  if (!context) {
-    throw new Error("useParams hook was used but a LocationContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");
-  }
-
-  var location = useLocation();
-
-  var results = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.match)(context.basepath, location.pathname);
-
-  return results ? results.params : null;
-};
-
-var useMatch = function useMatch(path) {
-  if (!path) {
-    throw new Error("useMatch(path: string) requires an argument of a string to match against");
-  }
-  var context = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(BaseContext);
-
-  if (!context) {
-    throw new Error("useMatch hook was used but a LocationContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");
-  }
-
-  var location = useLocation();
-
-  var resolvedPath = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.resolve)(path, context.baseuri);
-  var result = (0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.match)(resolvedPath, location.pathname);
-  return result ? _extends({}, result.params, {
-    uri: result.uri,
-    path: path
-  }) : null;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Junk
-var stripSlashes = function stripSlashes(str) {
-  return str.replace(/(^\/+|\/+$)/g, "");
-};
-
-var createRoute = function createRoute(basepath) {
-  return function (element) {
-    if (!element) {
-      return null;
-    }
-
-    if (element.type === (react__WEBPACK_IMPORTED_MODULE_0___default().Fragment) && element.props.children) {
-      return react__WEBPACK_IMPORTED_MODULE_0___default().Children.map(element.props.children, createRoute(basepath));
-    }
-    !(element.props.path || element.props.default || element.type === Redirect) ?  true ? invariant__WEBPACK_IMPORTED_MODULE_1___default()(false, "<Router>: Children of <Router> must have a `path` or `default` prop, or be a `<Redirect>`. None found on element type `" + element.type + "`") : 0 : void 0;
-
-    !!(element.type === Redirect && (!element.props.from || !element.props.to)) ?  true ? invariant__WEBPACK_IMPORTED_MODULE_1___default()(false, "<Redirect from=\"" + element.props.from + "\" to=\"" + element.props.to + "\"/> requires both \"from\" and \"to\" props when inside a <Router>.") : 0 : void 0;
-
-    !!(element.type === Redirect && !(0,_lib_utils__WEBPACK_IMPORTED_MODULE_3__.validateRedirect)(element.props.from, element.props.to)) ?  true ? invariant__WEBPACK_IMPORTED_MODULE_1___default()(false, "<Redirect from=\"" + element.props.from + " to=\"" + element.props.to + "\"/> has mismatched dynamic segments, ensure both paths have the exact same dynamic segments.") : 0 : void 0;
-
-    if (element.props.default) {
-      return { value: element, default: true };
-    }
-
-    var elementPath = element.type === Redirect ? element.props.from : element.props.path;
-
-    var path = elementPath === "/" ? basepath : stripSlashes(basepath) + "/" + stripSlashes(elementPath);
-
-    return {
-      value: element,
-      default: element.props.default,
-      path: element.props.children ? stripSlashes(path) + "/*" : path
-    };
-  };
-};
-
-var shouldNavigate = function shouldNavigate(event) {
-  return !event.defaultPrevented && event.button === 0 && !(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
-};
-
-////////////////////////////////////////////////////////////////////////
-
 
 /***/ }),
 
@@ -6215,6 +4938,17 @@ module.exports = require("/home/carlos/Documentos/grupoCopacabana/grupo-copacaba
 
 /***/ }),
 
+/***/ "crypto":
+/*!*************************!*\
+  !*** external "crypto" ***!
+  \*************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("crypto");
+
+/***/ }),
+
 /***/ "./node_modules/@babel/runtime/helpers/interopRequireDefault.js":
 /*!**********************************************************************!*\
   !*** ./node_modules/@babel/runtime/helpers/interopRequireDefault.js ***!
@@ -6290,6 +5024,54 @@ exports.partytownSnippet = partytownSnippet;
 
 /***/ }),
 
+/***/ "./node_modules/@gatsbyjs/reach-router/dist/index.modern.mjs":
+/*!*******************************************************************!*\
+  !*** ./node_modules/@gatsbyjs/reach-router/dist/index.modern.mjs ***!
+  \*******************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+var react__WEBPACK_IMPORTED_MODULE_0___namespace_cache;
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "BaseContext": () => (/* binding */ m),
+/* harmony export */   "Link": () => (/* binding */ A),
+/* harmony export */   "Location": () => (/* binding */ G),
+/* harmony export */   "LocationContext": () => (/* binding */ d),
+/* harmony export */   "LocationProvider": () => (/* binding */ z),
+/* harmony export */   "Match": () => (/* binding */ Q),
+/* harmony export */   "Redirect": () => (/* binding */ R),
+/* harmony export */   "Router": () => (/* binding */ oe),
+/* harmony export */   "ServerLocation": () => (/* binding */ J),
+/* harmony export */   "createHistory": () => (/* binding */ i),
+/* harmony export */   "createMemorySource": () => (/* binding */ c),
+/* harmony export */   "globalHistory": () => (/* binding */ l),
+/* harmony export */   "insertParams": () => (/* binding */ P),
+/* harmony export */   "isRedirect": () => (/* binding */ g),
+/* harmony export */   "match": () => (/* binding */ x),
+/* harmony export */   "navigate": () => (/* binding */ p),
+/* harmony export */   "pick": () => (/* binding */ w),
+/* harmony export */   "redirectTo": () => (/* binding */ v),
+/* harmony export */   "resolve": () => (/* binding */ k),
+/* harmony export */   "shallowCompare": () => (/* binding */ D),
+/* harmony export */   "startsWith": () => (/* binding */ C),
+/* harmony export */   "useBaseContext": () => (/* binding */ f),
+/* harmony export */   "useLocation": () => (/* binding */ se),
+/* harmony export */   "useLocationContext": () => (/* binding */ y),
+/* harmony export */   "useMatch": () => (/* binding */ ue),
+/* harmony export */   "useNavigate": () => (/* binding */ ie),
+/* harmony export */   "useParams": () => (/* binding */ ce),
+/* harmony export */   "validateRedirect": () => (/* binding */ T)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! prop-types */ "./node_modules/prop-types/index.js");
+/* harmony import */ var invariant__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! invariant */ "./node_modules/invariant/invariant.js");
+function o(){return o=Object.assign?Object.assign.bind():function(e){for(var t=1;t<arguments.length;t++){var r=arguments[t];for(var n in r)Object.prototype.hasOwnProperty.call(r,n)&&(e[n]=r[n])}return e},o.apply(this,arguments)}function a(e,t){if(null==e)return{};var r,n,o={},a=Object.keys(e);for(n=0;n<a.length;n++)t.indexOf(r=a[n])>=0||(o[r]=e[r]);return o}const s=e=>{const{search:t,hash:r,href:n,origin:o,protocol:a,host:s,hostname:i,port:c}=e.location;let{pathname:l}=e.location;return!l&&n&&u&&(l=new URL(n).pathname),{pathname:encodeURI(decodeURI(l)),search:t,hash:r,href:n,origin:o,protocol:a,host:s,hostname:i,port:c,state:e.history.state,key:e.history.state&&e.history.state.key||"initial"}},i=(e,t)=>{let r=[],n=s(e),a=!1,i=()=>{};return{get location(){return n},get transitioning(){return a},_onTransitionComplete(){a=!1,i()},listen(t){r.push(t);const o=()=>{n=s(e),t({location:n,action:"POP"})};return e.addEventListener("popstate",o),()=>{e.removeEventListener("popstate",o),r=r.filter(e=>e!==t)}},navigate(t,{state:c,replace:u=!1}={}){if("number"==typeof t)e.history.go(t);else{c=o({},c,{key:Date.now()+""});try{a||u?e.history.replaceState(c,null,t):e.history.pushState(c,null,t)}catch(r){e.location[u?"replace":"assign"](t)}}n=s(e),a=!0;const l=new Promise(e=>i=e);return r.forEach(e=>e({location:n,action:"PUSH"})),l}}},c=(e="/")=>{const t=e.indexOf("?"),r={pathname:t>-1?e.substr(0,t):e,search:t>-1?e.substr(t):""};let n=0;const o=[r],a=[null];return{get location(){return o[n]},addEventListener(e,t){},removeEventListener(e,t){},history:{get entries(){return o},get index(){return n},get state(){return a[n]},pushState(e,t,r){const[s,i=""]=r.split("?");n++,o.push({pathname:s,search:i.length?`?${i}`:i}),a.push(e)},replaceState(e,t,r){const[s,i=""]=r.split("?");o[n]={pathname:s,search:i},a[n]=e},go(e){const t=n+e;t<0||t>a.length-1||(n=t)}}}},u=!("undefined"==typeof window||!window.document||!window.document.createElement),l=i(u?window:c()),{navigate:p}=l;function h(e,r){return react__WEBPACK_IMPORTED_MODULE_0__.createServerContext?((e,r=null)=>(globalThis.__SERVER_CONTEXT||(globalThis.__SERVER_CONTEXT={}),globalThis.__SERVER_CONTEXT[e]||(globalThis.__SERVER_CONTEXT[e]=react__WEBPACK_IMPORTED_MODULE_0__.createServerContext(e,r)),globalThis.__SERVER_CONTEXT[e]))(e,r):react__WEBPACK_IMPORTED_MODULE_0__.createContext(r)}const m=h("Base",{baseuri:"/",basepath:"/"}),d=h("Location"),f=()=>react__WEBPACK_IMPORTED_MODULE_0__.useContext(m),y=()=>react__WEBPACK_IMPORTED_MODULE_0__.useContext(d);function E(e){this.uri=e}const g=e=>e instanceof E,v=e=>{throw new E(e)};function b(t){const{to:r,replace:n=!0,state:o,noThrow:a,baseuri:s}=t;react__WEBPACK_IMPORTED_MODULE_0__.useEffect(()=>{Promise.resolve().then(()=>{const e=k(r,s);p(P(e,t),{replace:n,state:o})})},[]);const i=k(r,s);return a||v(P(i,t)),null}const R=t=>{const r=y(),{baseuri:n}=f();/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(b,o({},r,{baseuri:n},t))};R.propTypes={from:prop_types__WEBPACK_IMPORTED_MODULE_2__.string,to:prop_types__WEBPACK_IMPORTED_MODULE_2__.string.isRequired};const C=(e,t)=>e.substr(0,t.length)===t,w=(e,t)=>{let r,o;const[a]=t.split("?"),s=N(a),i=""===s[0],c=j(e);for(let e=0,a=c.length;e<a;e++){let a=!1;const u=c[e].route;if(u.default){o={route:u,params:{},uri:t};continue}const l=N(u.path),p={},h=Math.max(s.length,l.length);let m=0;for(;m<h;m++){const e=l[m],t=s[m];if($(e)){p[e.slice(1)||"*"]=s.slice(m).map(decodeURIComponent).join("/");break}if(void 0===t){a=!0;break}const r=O.exec(e);if(r&&!i){const e=-1===U.indexOf(r[1]);invariant__WEBPACK_IMPORTED_MODULE_1__(e,`<Router> dynamic segment "${r[1]}" is a reserved name. Please use a different name in path "${u.path}".`);const o=decodeURIComponent(t);p[r[1]]=o}else if(e!==t){a=!0;break}}if(!a){r={route:u,params:p,uri:"/"+s.slice(0,m).join("/")};break}}return r||o||null},x=(e,t)=>w([{path:e}],t),k=(e,t)=>{if(C(e,"/"))return e;const[r,n]=e.split("?"),[o]=t.split("?"),a=N(r),s=N(o);if(""===a[0])return L(o,n);if(!C(a[0],".")){const e=s.concat(a).join("/");return L(("/"===o?"":"/")+e,n)}const i=s.concat(a),c=[];for(let e=0,t=i.length;e<t;e++){const t=i[e];".."===t?c.pop():"."!==t&&c.push(t)}return L("/"+c.join("/"),n)},P=(e,t)=>{const[r,n=""]=e.split("?");let o="/"+N(r).map(e=>{const r=O.exec(e);return r?t[r[1]]:e}).join("/");const{location:{search:a=""}={}}=t,s=a.split("?")[1]||"";return o=L(o,n,s),o},T=(e,t)=>{const r=e=>_(e);return N(e).filter(r).sort().join("/")===N(t).filter(r).sort().join("/")},O=/^:(.+)/,_=e=>O.test(e),$=e=>e&&"*"===e[0],S=(e,t)=>({route:e,score:e.default?0:N(e.path).reduce((e,t)=>(e+=4,(e=>""===e)(t)?e+=1:_(t)?e+=2:$(t)?e-=5:e+=3,e),0),index:t}),j=e=>e.map(S).sort((e,t)=>e.score<t.score?1:e.score>t.score?-1:e.index-t.index),N=e=>e.replace(/(^\/+|\/+$)/g,"").split("/"),L=(e,...t)=>e+((t=t.filter(e=>e&&e.length>0))&&t.length>0?`?${t.join("&")}`:""),U=["uri","path"],D=(e,t)=>{const r=Object.keys(e);return r.length===Object.keys(t).length&&r.every(r=>t.hasOwnProperty(r)&&e[r]===t[r])},M=e=>e.replace(/(^\/+|\/+$)/g,""),I=t=>r=>{if(!r)return null;if(r.type===react__WEBPACK_IMPORTED_MODULE_0__.Fragment&&r.props.children)return react__WEBPACK_IMPORTED_MODULE_0__.Children.map(r.props.children,I(t));if(invariant__WEBPACK_IMPORTED_MODULE_1__(r.props.path||r.props.default||r.type===R,`<Router>: Children of <Router> must have a \`path\` or \`default\` prop, or be a \`<Redirect>\`. None found on element type \`${r.type}\``),invariant__WEBPACK_IMPORTED_MODULE_1__(!!(r.type!==R||r.props.from&&r.props.to),`<Redirect from="${r.props.from}" to="${r.props.to}"/> requires both "from" and "to" props when inside a <Router>.`),invariant__WEBPACK_IMPORTED_MODULE_1__(!(r.type===R&&!T(r.props.from,r.props.to)),`<Redirect from="${r.props.from} to="${r.props.to}"/> has mismatched dynamic segments, ensure both paths have the exact same dynamic segments.`),r.props.default)return{value:r,default:!0};const o=r.type===R?r.props.from:r.props.path,a="/"===o?t:`${M(t)}/${M(o)}`;return{value:r,default:r.props.default,path:r.props.children?`${M(a)}/*`:a}},V=["innerRef"],q=["to","state","replace","getProps"],X=["key"];let{forwardRef:B}=/*#__PURE__*/ (react__WEBPACK_IMPORTED_MODULE_0___namespace_cache || (react__WEBPACK_IMPORTED_MODULE_0___namespace_cache = __webpack_require__.t(react__WEBPACK_IMPORTED_MODULE_0__, 2)));void 0===B&&(B=e=>e);const K=()=>{},A=B((t,r)=>{let{innerRef:n}=t,s=a(t,V);const{baseuri:i}=f(),{location:c}=y(),{to:u,state:l,replace:h,getProps:m=K}=s,d=a(s,q),E=k(u,i),g=encodeURI(E),v=c.pathname===g,b=C(c.pathname,g);/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement("a",o({ref:r||n,"aria-current":v?"page":void 0},d,m({isCurrent:v,isPartiallyCurrent:b,href:E,location:c}),{href:E,onClick:e=>{if(d.onClick&&d.onClick(e),(e=>!e.defaultPrevented&&0===e.button&&!(e.metaKey||e.altKey||e.ctrlKey||e.shiftKey))(e)){e.preventDefault();let t=h;if("boolean"!=typeof h&&v){const e=a(o({},c.state),X);t=D(o({},l),e)}p(E,{state:l,replace:t})}}}))});A.displayName="Link",A.propTypes={to:prop_types__WEBPACK_IMPORTED_MODULE_2__.string.isRequired};class F extends react__WEBPACK_IMPORTED_MODULE_0__.Component{constructor(...e){super(...e),this.displayName="ReactUseErrorBoundary"}componentDidCatch(...e){this.setState({}),this.props.onError(...e)}render(){return this.props.children}}const W=react__WEBPACK_IMPORTED_MODULE_0__.createContext({componentDidCatch:{current:void 0},error:void 0,setError:()=>!1});function H({children:t}){const[r,n]=react__WEBPACK_IMPORTED_MODULE_0__.useState(),o=react__WEBPACK_IMPORTED_MODULE_0__.useRef(),a=react__WEBPACK_IMPORTED_MODULE_0__.useMemo(()=>({componentDidCatch:o,error:r,setError:n}),[r]);/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(W.Provider,{value:a},/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(F,{error:r,onError:(e,t)=>{n(e),null==o.current||o.current(e,t)}},t))}H.displayName="ReactUseErrorBoundaryContext";const z=function(t){var r,n;function a(r){/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(H,null,/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(t,o({key:"WrappedComponent"},r)))}return a.displayName=`WithErrorBoundary(${null!=(r=null!=(n=t.displayName)?n:t.name)?r:"Component"})`,a}(({history:t=l,children:r})=>{const{location:n}=t,[o,a]=react__WEBPACK_IMPORTED_MODULE_0__.useState({location:n}),[s]=function(t){const r=react__WEBPACK_IMPORTED_MODULE_0__.useContext(W);r.componentDidCatch.current=void 0;const n=react__WEBPACK_IMPORTED_MODULE_0__.useCallback(()=>{r.setError(void 0)},[]);return[r.error,n]}();if(react__WEBPACK_IMPORTED_MODULE_0__.useEffect(()=>{t._onTransitionComplete()},[o.location]),react__WEBPACK_IMPORTED_MODULE_0__.useEffect(()=>{let e=!1;const r=t.listen(({location:t})=>{Promise.resolve().then(()=>{requestAnimationFrame(()=>{e||a({location:t})})})});return()=>{e=!0,r()}},[]),s){if(!g(s))throw s;p(s.uri,{replace:!0})}/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(d.Provider,{value:o},"function"==typeof r?r(o):r||null)}),G=({children:t})=>{const r=y();return r?t(r):/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(z,null,t)},J=({url:t,children:r})=>{const n=t.indexOf("?");let o,a="";return n>-1?(o=t.substring(0,n),a=t.substring(n)):o=t,/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(d.Provider,{value:{location:{pathname:o,search:a,hash:""}}},r)},Q=({path:e,children:t})=>{const{baseuri:r}=f(),{location:n}=y(),a=k(e,r),s=x(a,n.pathname);return t({location:n,match:s?o({},s.params,{uri:s.uri,path:e}):null})},Y=["uri","location","component"],Z=["children","style","component","uri","location"],ee=t=>{let{uri:r,location:n,component:s}=t,i=a(t,Y);/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(re,o({},i,{component:s,uri:r,location:n}))};let te=0;const re=t=>{let{children:r,style:n,component:s="div",uri:i,location:c}=t,u=a(t,Z);const l=react__WEBPACK_IMPORTED_MODULE_0__.useRef(),p=react__WEBPACK_IMPORTED_MODULE_0__.useRef(!0),h=react__WEBPACK_IMPORTED_MODULE_0__.useRef(i),m=react__WEBPACK_IMPORTED_MODULE_0__.useRef(c.pathname),d=react__WEBPACK_IMPORTED_MODULE_0__.useRef(!1);react__WEBPACK_IMPORTED_MODULE_0__.useEffect(()=>(te++,f(),()=>{te--,0===te&&(p.current=!0)}),[]),react__WEBPACK_IMPORTED_MODULE_0__.useEffect(()=>{let e=!1,t=!1;i!==h.current&&(h.current=i,e=!0),c.pathname!==m.current&&(m.current=c.pathname,t=!0),d.current=e||t&&c.pathname===i,d.current&&f()},[i,c]);const f=react__WEBPACK_IMPORTED_MODULE_0__.useCallback(()=>{var e; true&&(p.current?p.current=!1:(e=l.current,d.current&&e&&e.focus()))},[]);/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(s,o({style:o({outline:"none"},n),tabIndex:"-1",ref:l},u),r)},ne=["location","primary","children","basepath","baseuri","component"],oe=t=>{const r=f(),n=y();/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(ae,o({},r,n,t))};function ae(t){const{location:r,primary:n=!0,children:s,basepath:i,component:c="div"}=t,u=a(t,ne),l=react__WEBPACK_IMPORTED_MODULE_0__.Children.toArray(s).reduce((e,t)=>{const r=I(i)(t);return e.concat(r)},[]),{pathname:p}=r,h=w(l,p);if(h){const{params:t,uri:a,route:s,route:{value:l}}=h,p=s.default?i:s.path.replace(/\*$/,""),d=o({},t,{uri:a,location:r}),f=react__WEBPACK_IMPORTED_MODULE_0__.cloneElement(l,d,l.props.children?/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(oe,{location:r,primary:n},l.props.children):void 0),y=n?ee:c,E=n?o({uri:a,location:r,component:c},u):u;/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(m.Provider,{value:{baseuri:a,basepath:p}},/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(y,E,f))}return null}const se=()=>{const e=y();if(!e)throw new Error("useLocation hook was used but a LocationContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");return e.location},ie=()=>{throw new Error("useNavigate is removed. Use import { navigate } from 'gatsby' instead")},ce=()=>{const e=f();if(!e)throw new Error("useParams hook was used but a LocationContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");const t=se(),r=x(e.basepath,t.pathname);return r?r.params:null},ue=e=>{if(!e)throw new Error("useMatch(path: string) requires an argument of a string to match against");const t=f();if(!t)throw new Error("useMatch hook was used but a LocationContext.Provider was not found in the parent tree. Make sure this is used in a component that is a child of Router");const r=se(),n=k(e,t.baseuri),a=x(n,r.pathname);return a?o({},a.params,{uri:a.uri,path:e}):null};
+//# sourceMappingURL=index.modern.mjs.map
+
+
+/***/ }),
+
 /***/ "./node_modules/gatsby-script/dist/index.modern.mjs":
 /*!**********************************************************!*\
   !*** ./node_modules/gatsby-script/dist/index.modern.mjs ***!
@@ -6306,8 +5088,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "scriptCallbackCache": () => (/* binding */ d)
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
-/* harmony import */ var _gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/es/index.js");
-"client export"
+/* harmony import */ var _gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @gatsbyjs/reach-router */ "./node_modules/@gatsbyjs/reach-router/dist/index.modern.mjs");
+"use client"
 ;function o(){return o=Object.assign?Object.assign.bind():function(t){for(var e=1;e<arguments.length;e++){var n=arguments[e];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(t[r]=n[r])}return t},o.apply(this,arguments)}const a=new Map,l={get:t=>a.get(t)||[],set(t,e){const n=a.get(t)||[];n.push(e),a.set(t,n)},delete(t){a.delete(t)}},s="undefined"!=typeof self&&self.requestIdleCallback&&self.requestIdleCallback.bind(window)||function(t){const e=Date.now();return setTimeout(function(){t({didTimeout:!1,timeRemaining:function(){return Math.max(0,50-(Date.now()-e))}})},1)};var c;!function(t){t.postHydrate="post-hydrate",t.idle="idle",t.offMainThread="off-main-thread"}(c||(c={}));const i=new Set(["src","strategy","dangerouslySetInnerHTML","children","onLoad","onError"]),u=new Set,d=new Map;function f(e){/*#__PURE__*/return react__WEBPACK_IMPORTED_MODULE_0__.createElement(_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.Location,null,()=>/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(p,e))}function p(n){const{src:a,strategy:i=c.postHydrate}=n||{},{pathname:u}=(0,_gatsbyjs_reach_router__WEBPACK_IMPORTED_MODULE_1__.useLocation)();if((0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(()=>{let t;switch(i){case c.postHydrate:t=y(n);break;case c.idle:s(()=>{t=y(n)});break;case c.offMainThread:{const t=b(n);l.set(u,t)}}return()=>{const{script:e,loadCallback:n,errorCallback:r}=t||{};n&&(null==e||e.removeEventListener("load",n)),r&&(null==e||e.removeEventListener("error",r)),null==e||e.remove()}},[]),i===c.offMainThread){const e=m(n),r=b(n);return"undefined"==typeof window&&l.set(u,r),/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("script",e?o({type:"text/partytown","data-strategy":i,crossOrigin:"anonymous"},r,{dangerouslySetInnerHTML:{__html:m(n)}}):o({type:"text/partytown",src:h(a),"data-strategy":i,crossOrigin:"anonymous"},r))}return null}function y(t){const{id:e,src:n,strategy:r=c.postHydrate,onLoad:a,onError:l}=t||{},s=e||n,i=["load","error"],f={load:a,error:l};if(s){for(const t of i)if(null!=f&&f[t]){var p;const e=d.get(s)||{},{callbacks:n=[]}=(null==e?void 0:e[t])||{};var y,h;n.push(null==f?void 0:f[t]),null!=e&&null!=(p=e[t])&&p.event?null==f||null==(y=f[t])||y.call(f,null==e||null==(h=e[t])?void 0:h.event):d.set(s,o({},e,{[t]:{callbacks:n}}))}if(u.has(s))return null}const v=m(t),k=b(t),w=document.createElement("script");e&&(w.id=e),w.dataset.strategy=r;for(const[t,e]of Object.entries(k))w.setAttribute(t,e);v&&(w.textContent=v),n&&(w.src=n);const C={};if(s){for(const t of i){const e=e=>g(e,s,t);w.addEventListener(t,e),C[`${t}Callback`]=e}u.add(s)}return document.body.appendChild(w),{script:w,loadCallback:C.loadCallback,errorCallback:C.errorCallback}}function m(t){const{dangerouslySetInnerHTML:e,children:n=""}=t||{},{__html:r=""}=e||{};return r||n}function b(t){const e={};for(const[n,r]of Object.entries(t))i.has(n)||(e[n]=r);return e}function h(t){if(t)return`/__third-party-proxy?url=${encodeURIComponent(t)}`}function g(t,e,n){const r=d.get(e)||{};for(const e of(null==r||null==(o=r[n])?void 0:o.callbacks)||[]){var o;e(t)}d.set(e,{[n]:{event:t}})}
 //# sourceMappingURL=index.modern.mjs.map
 
@@ -6334,7 +5116,7 @@ __webpack_require__.r(__webpack_exports__);
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 /******/ 	
 /******/ 		// Flag the module as loaded
 /******/ 		module.loaded = true;
@@ -6356,6 +5138,36 @@ __webpack_require__.r(__webpack_exports__);
 /******/ 				() => (module);
 /******/ 			__webpack_require__.d(getter, { a: getter });
 /******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/create fake namespace object */
+/******/ 	(() => {
+/******/ 		var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+/******/ 		var leafPrototypes;
+/******/ 		// create a fake namespace object
+/******/ 		// mode & 1: value is a module id, require it
+/******/ 		// mode & 2: merge all properties of value into the ns
+/******/ 		// mode & 4: return value when already ns object
+/******/ 		// mode & 16: return value when it's Promise-like
+/******/ 		// mode & 8|1: behave like require
+/******/ 		__webpack_require__.t = function(value, mode) {
+/******/ 			if(mode & 1) value = this(value);
+/******/ 			if(mode & 8) return value;
+/******/ 			if(typeof value === 'object' && value) {
+/******/ 				if((mode & 4) && value.__esModule) return value;
+/******/ 				if((mode & 16) && typeof value.then === 'function') return value;
+/******/ 			}
+/******/ 			var ns = Object.create(null);
+/******/ 			__webpack_require__.r(ns);
+/******/ 			var def = {};
+/******/ 			leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+/******/ 			for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+/******/ 				Object.getOwnPropertyNames(current).forEach((key) => (def[key] = () => (value[key])));
+/******/ 			}
+/******/ 			def['default'] = () => (value);
+/******/ 			__webpack_require__.d(ns, def);
+/******/ 			return ns;
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -6590,11 +5402,7 @@ Html = Html && Html.__esModule ? Html.default : Html;
     htmlAttributes,
     bodyAttributes,
     preBodyComponents,
-    postBodyComponents: postBodyComponents.concat([ true && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("script", {
-      key: `polyfill`,
-      src: "/polyfill.js",
-      noModule: true
-    }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("script", {
+    postBodyComponents: postBodyComponents.concat([ false && /*#__PURE__*/0, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("script", {
       key: `framework`,
       src: "/framework.js"
     }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("script", {

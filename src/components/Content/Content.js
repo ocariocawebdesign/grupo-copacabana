@@ -47,7 +47,7 @@ export default function Content() {
                     Reunião Hibrida (Presencial / Online)
                     <br />
                     <small style={{ fontWeight: "500" }}>
-                      DIA 26/11/22 17:30 AS 19:30{" "}
+                      DIA 26/11/22 - 17:30 ÀS 19:30{" "}
                     </small>
                   </h3>
                   <img
@@ -200,9 +200,9 @@ export default function Content() {
                       marginTop: "2rem",
                     }}
                   >
-                      <img src={NA}/>
+                      <img className="mb-2" src={NA}/>
                     <br />
-                    NS. DE COPACABANA, 435 / 913 - Tel: 2543-5015
+                    NS. DE COPACABANA, 435 / 913 - Tel: 2547-1058
                   </p>
                 </div>
               
