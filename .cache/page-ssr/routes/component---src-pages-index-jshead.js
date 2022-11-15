@@ -68,7 +68,7 @@ function Content() {
     style: {
       fontWeight: "500"
     }
-  }, "DIA 26/11/22 17:30 AS 19:30", " ")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
+  }, "DIA 26/11/22 - 17:30 \xC0S 19:30", " ")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
     className: "img-profile img-thumbnail",
     src: _images_profile_png__WEBPACK_IMPORTED_MODULE_3__["default"],
     alt: "Foto perfil"
@@ -145,8 +145,9 @@ function Content() {
       marginTop: "2rem"
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
+    className: "mb-2",
     src: _images_nalogo_png__WEBPACK_IMPORTED_MODULE_5__["default"]
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("br", null), "NS. DE COPACABANA, 435 / 913 - Tel: 2543-5015"))))))));
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("br", null), "NS. DE COPACABANA, 435 / 913 - Tel: 2547-1058"))))))));
 }
 
 /***/ }),
